@@ -1,0 +1,27 @@
+[
+  {
+    "id": "1",
+    "conversationId": "1",
+    
+    "senderId": "user1",
+    "senderName": "Alice Smith",
+    "timestamp": "2:30 PM",
+    "content": "Hey, how are you?"
+  },
+  {
+    "id": "2",
+    "conversationId": "1",
+    "senderId": "current-user",
+    "senderName": "You",
+    "timestamp": "2:31 PM",
+    "content": "I'm good, thanks! How about you?"
+  },
+  {
+    "id": "3",
+    "conversationId": "1",
+    "senderId": "user1",
+    "senderName": "Alice Smith",
+    "timestamp": "2:32 PM",
+    "content": "Great! Do you want to grab coffee sometime this week?"
+  }
+]

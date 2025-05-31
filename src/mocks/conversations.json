@@ -1,0 +1,23 @@
+[
+  {
+    "id": "1",
+    "name": "Alice Smith",
+    "lastMessage": "Hey, how are you?",
+    "timestamp": "2:30 PM",
+    "unread": 2
+  },
+  {
+    "id": "2",
+    "name": "Bob Johnson",
+    "lastMessage": "Can we meet tomorrow?",
+    "timestamp": "1:45 PM",
+    "unread": 0
+  },
+  {
+    "id": "3",
+    "name": "Carol Williams",
+    "lastMessage": "The project is done!",
+    "timestamp": "Yesterday",
+    "unread": 0
+  }
+]
