@@ -4,6 +4,8 @@ import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -16,22 +18,42 @@ import {
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { signInSchema, type SignInFormValues } from "@/lib/schemas/auth"
+import { useAuthStore } from "@/lib/store/auth.store"
+import { authService } from "@/services/authService"
 
 export function LoginForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const setAuth = useAuthStore((state) => state.setAuth)
+  const setLoading = useAuthStore((state) => state.setLoading)
+  const isLoading = useAuthStore((state) => state.isLoading)
+
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: "",
+      emailOrUsername: "",
       password: "",
     },
   })
 
   async function onSubmit(data: SignInFormValues) {
     try {
-      // TODO: Implement login logic
-      console.log("Log in data:", data)
+      setLoading(true)
+      const auth = await authService.login(data)
+      setAuth(auth)
+      toast.success("Successfully logged in!")
+      
+      // Redirect to the original path or default to /chat
+      const from = searchParams.get('from') || '/chat'
+      router.replace(from)
     } catch (error) {
-      console.error("Log in error:", error)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error("Failed to log in. Please try again.")
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -40,7 +62,7 @@ export function LoginForm() {
       <CardHeader>
         <CardTitle>Login</CardTitle>
         <CardDescription>
-          Enter your email and password to access your account
+          Enter your email/username and password to access your account
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -48,12 +70,16 @@ export function LoginForm() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="email"
+              name="emailOrUsername"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Email or Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your email" type="email" {...field} />
+                    <Input 
+                      placeholder="Enter your email or username" 
+                      disabled={isLoading}
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -66,14 +92,19 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Enter your password" {...field} />
+                    <Input 
+                      type="password" 
+                      placeholder="Enter your password" 
+                      disabled={isLoading}
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Logging in..." : "Sign In"}
             </Button>
           </form>
         </Form>

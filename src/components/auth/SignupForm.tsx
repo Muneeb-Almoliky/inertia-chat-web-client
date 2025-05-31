@@ -4,6 +4,8 @@ import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -16,13 +18,21 @@ import {
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { signUpSchema, type SignUpFormValues } from "@/lib/schemas/auth"
+import { useAuthStore } from "@/lib/store/auth.store"
+import { authService } from "@/services/authService"
 
 export function SignupForm() {
+  const router = useRouter()
+  const setAuth = useAuthStore((state) => state.setAuth)
+  const setLoading = useAuthStore((state) => state.setLoading)
+  const isLoading = useAuthStore((state) => state.isLoading)
+
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       username: "",
       email: "",
+      name: "",
       password: "",
       confirmPassword: "",
     },
@@ -30,10 +40,19 @@ export function SignupForm() {
 
   async function onSubmit(data: SignUpFormValues) {
     try {
-      // TODO: Implement sign-up logic
-      console.log("Sign up data:", data)
+      setLoading(true)
+      const auth = await authService.signup(data)
+      setAuth(auth)
+      toast.success("Account created successfully!")
+      router.push("/chat") // Redirect to chat page after signup
     } catch (error) {
-      console.error("Sign up error:", error)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error("Failed to create account. Please try again.")
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -55,7 +74,28 @@ export function SignupForm() {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your username" {...field} />
+                    <Input 
+                      placeholder="Enter your username" 
+                      disabled={isLoading}
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter your full name" 
+                      disabled={isLoading}
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -68,7 +108,12 @@ export function SignupForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your email" type="email" {...field} />
+                    <Input 
+                      placeholder="Enter your email" 
+                      type="email" 
+                      disabled={isLoading}
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -81,7 +126,12 @@ export function SignupForm() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Create a password" {...field} />
+                    <Input 
+                      type="password" 
+                      placeholder="Create a password" 
+                      disabled={isLoading}
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -94,14 +144,19 @@ export function SignupForm() {
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Confirm your password" {...field} />
+                    <Input 
+                      type="password" 
+                      placeholder="Confirm your password" 
+                      disabled={isLoading}
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
-              Sign Up
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating account..." : "Sign Up"}
             </Button>
           </form>
         </Form>
