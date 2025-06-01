@@ -1,5 +1,8 @@
+"use client";
+
 import { ChatMessages } from "@/components/chat/ChatMessages"
 import { ChatInput } from "@/components/chat/ChatInput"
+import { AuthGuard } from "@/components/auth/AuthGuard"
 
 interface ChatPageProps {
   params: {
@@ -7,7 +10,7 @@ interface ChatPageProps {
   }
 }
 
-export default function ChatPage({ params }: ChatPageProps) {
+function ChatPage({ params }: ChatPageProps) {
   return (
     <>
       <div className="flex-1 overflow-y-auto">
@@ -18,4 +21,6 @@ export default function ChatPage({ params }: ChatPageProps) {
       </div>
     </>
   )
-} 
+}
+
+export default AuthGuard(ChatPage);
