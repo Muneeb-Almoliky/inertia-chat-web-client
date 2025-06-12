@@ -9,13 +9,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useChat } from "@/hooks/useChat"
 
 interface ChatInputProps {
   conversationId: string
 }
 
 export function ChatInput({ conversationId }: ChatInputProps) {
+  const { sendMessage } = useChat(Number(conversationId))
   const [message, setMessage] = React.useState("")
+  const [isSending, setIsSending] = React.useState(false)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -25,11 +28,18 @@ export function ChatInput({ conversationId }: ChatInputProps) {
     }
   }
 
-  const handleSend = () => {
-    if (!message.trim()) return
-    // TODO: Implement send message logic
-    console.log("Sending message:", message)
-    setMessage("")
+  const handleSend = async () => {
+    if (!message.trim() || isSending) return
+    
+    try {
+      setIsSending(true)
+      await sendMessage(message.trim())
+      setMessage("")
+    } catch (error) {
+      console.error("Failed to send message:", error)
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
@@ -59,12 +69,13 @@ export function ChatInput({ conversationId }: ChatInputProps) {
           placeholder="Type a message..."
           className="min-h-[50px] max-h-[200px] flex-1"
           rows={1}
+          disabled={isSending}
         />
       </div>
       <Button
         size="icon"
         onClick={handleSend}
-        disabled={!message.trim()}
+        disabled={!message.trim() || isSending}
       >
         <Send className="h-5 w-5" />
       </Button>

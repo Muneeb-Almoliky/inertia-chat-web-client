@@ -8,10 +8,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import type { User as UserType } from "@/lib/store/auth.store"
+// import type { User as UserType } from "@/lib/store/auth.store"
 
 interface UserProfileProps {
-  user: UserType | null
+  user:  any,
   onLogout: () => void
 }
 

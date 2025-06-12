@@ -1,15 +1,15 @@
 'use client'
 
 import { useEffect } from 'react';
-import { useAuth } from './useAuth';
 import { useRefreshToken } from './useRefreshToken';
 import axiosInstance from '@/api/axios';
-
+import { useAuthStore } from '@/lib/store/auth.store';
 export function useAxios() {
   const refresh = useRefreshToken();
-  const { auth } = useAuth();
+  const auth = useAuthStore.getState();
 
   useEffect(() => {
+    console.log(auth.accessToken);
     const interceptors = {
       request: axiosInstance.interceptors.request.use(
         config => {
@@ -21,6 +21,7 @@ export function useAxios() {
           });
 
           if (!config.headers!['Authorization']) {
+            console.log(auth?.accessToken);
             config.headers!['Authorization'] = `Bearer ${auth?.accessToken}`;
           }
           return config;
