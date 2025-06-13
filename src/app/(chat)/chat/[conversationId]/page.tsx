@@ -3,21 +3,23 @@
 import { ChatMessages } from "@/components/chat/ChatMessages"
 import { ChatInput } from "@/components/chat/ChatInput"
 import { AuthGuard } from "@/components/auth/AuthGuard"
+import { useParams } from "next/navigation";
 
-interface ChatPageProps {
-  params: {
-    conversationId: string
-  }
+interface ChatPageParams {
+  conversationId: string;
 }
 
-function ChatPage({ params }: ChatPageProps) {
+function ChatPage() {
+  const params = useParams();
+  const conversationId = params?.conversationId as ChatPageParams['conversationId'];
+  
   return (
     <>
       <div className="flex-1 overflow-y-auto">
-        <ChatMessages conversationId={params.conversationId} />
+        <ChatMessages conversationId={conversationId} />
       </div>
       <div className="border-t p-4">
-        <ChatInput conversationId={params.conversationId} />
+        <ChatInput conversationId={conversationId} />
       </div>
     </>
   )
