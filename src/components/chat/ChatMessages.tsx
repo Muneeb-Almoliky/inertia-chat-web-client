@@ -6,15 +6,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useChat } from "@/hooks/useChat"
 import { format } from "date-fns"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/hooks"
 
 interface ChatMessagesProps {
   conversationId: string
 }
 
 export function ChatMessages({ conversationId }: ChatMessagesProps) {
+  const { auth } = useAuth();
   const { messages, loading, chatType } = useChat(Number(conversationId))
-  const username = useAuthStore((state) => state.username)
-  console.log(username, "username in ChatMessages");
 
   if (loading) {
     return (
@@ -27,9 +27,7 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
   return (
     <div className="flex flex-col gap-4 p-4">
       {messages.map((message) => {
-        const isCurrentUser = message.senderId === 1
-        console.log(isCurrentUser, "isCurrentUser in ChatMessages");
-        console.log(message.senderName, "message.senderName in ChatMessages");
+        const isCurrentUser = message.senderId === auth.userId
 
         // Handle system messages (join/leave)
         if (message.type !== 'CHAT') {
