@@ -1,54 +1,59 @@
 import axios from 'axios';
-import { useAuthStore } from '@/lib/store/auth.store'
+import { useAuthStore } from '@/lib/store/auth.store';
 import { authService } from '@/services/authService';
 
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:9090",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true, 
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9090',
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
-// Add a request interceptor
+// REQUEST interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().accessToken
-    if (token) {
-      config.headers!.Authorization = `Bearer ${token}`
-      console.log("🚀 authed request:", config);
-    } else {
-      console.log("🚀⚠️ unauthed request:", config);
+    const { accessToken } = useAuthStore.getState();
+    if (accessToken) {
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${accessToken}`,
+      };
     }
-    return config
+    return config;
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 );
 
+// RESPONSE interceptor
 axiosInstance.interceptors.response.use(
-  (response) => {
-    console.log("✅ Response:", response);
-    return response;
-  },
+  (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const originalReq = error.config!;
+    const status = error.response?.status;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
+    if (
+      (status === 401 || status === 403) &&
+      !originalReq._retry &&
+      !originalReq.url?.includes('/auth/refresh')
+    ) {
+      originalReq._retry = true;
       try {
-        console.log("🔁 Refreshing token due to 401...");
-        const refreshAuth = await authService.refresh();
-        const newToken = refreshAuth.accessToken;
+        // call your refresh endpoint directly
+        const resp = await authService.refresh();
+        const newAccessToken = resp.accessToken;
+        if (newAccessToken) {
+          // update your store so future requests use the fresh token
+          useAuthStore.setState({ accessToken: newAccessToken });
 
-        if (newToken) {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          return axiosInstance(originalRequest);
+          // patch the original request and retry
+          originalReq.headers = {
+            ...originalReq.headers,
+            Authorization: `Bearer ${newAccessToken}`,
+          };
+          return axiosInstance(originalReq);
         }
       } catch (refreshError) {
-        console.error("❌ Token refresh failed:", refreshError);
+        // if refresh also fails, fall through to reject
+        console.error('[Axios] refresh failed:', refreshError);
       }
     }
 
