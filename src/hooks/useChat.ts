@@ -77,7 +77,7 @@ export function useChat(chatId?: number) {
     const payload: Omit<ChatMessage, 'id' | 'createdAt'> = {
       content,
       chatId,
-      senderId: Number(1), // will be replaced later by the actual user ID
+      senderId: auth.userId,
       senderName: auth.username,
       type: MessageType.CHAT,
     }

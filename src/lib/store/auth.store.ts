@@ -12,6 +12,7 @@ interface AuthStore extends AuthResponse {
 }
 
 const initialState = {
+  userId: 0,
   accessToken: "",
   username: "",
   email: "",

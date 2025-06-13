@@ -20,6 +20,7 @@ export type SignInFormValues = z.infer<typeof signInSchema>
 export type SignUpFormValues = z.infer<typeof signUpSchema>
 
 export type AuthResponse = {
+  userId: number
   accessToken: string
   username: string
   email: string
