@@ -7,6 +7,7 @@ import { websocketService } from '@/services/websocketService'
 import { MessageType, type Chat, type ChatMessage } from '@/types/chat'
 
 export function useChat(chatId?: number) {
+  console.log('[useChat] chatId:', chatId ? chatId : 'undefined')
   const { auth } = useAuth()
   const [chats, setChats] = useState<Chat[]>([])
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -17,6 +18,8 @@ export function useChat(chatId?: number) {
 }, [chats, chatId])
 
   useEffect(() => {
+    console.log('[useChat] loading chats...')
+    console.log('[useChat] auth:', auth)
     chatService.getUserChats()
       .then(setChats)
       .catch(err => console.error('Failed to load chats:', err))

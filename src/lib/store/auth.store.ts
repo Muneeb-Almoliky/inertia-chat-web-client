@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import type { AuthResponse } from "../schemas/auth"
+import { authService } from "@/services/authService"
 
 interface AuthStore extends AuthResponse {
   isAuthenticated: boolean
@@ -9,6 +10,7 @@ interface AuthStore extends AuthResponse {
   clearAuth: () => void
   setLoading: (loading: boolean) => void
   setInitialized: (initialized: boolean) => void
+  logout: () => Promise<void>
 }
 
 const initialState = {
@@ -21,7 +23,7 @@ const initialState = {
   isInitialized: false,
 }
 
-export const useAuthStore = create<AuthStore>()((set) => ({
+export const useAuthStore = create<AuthStore>()((set, get) => ({
   ...initialState,
   setAuth: (auth: AuthResponse) =>
     set({
@@ -38,4 +40,16 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     set({ isLoading: loading }),
   setInitialized: (initialized: boolean) =>
     set({ isInitialized: initialized }),
+  logout: async () => {
+    try {
+      set({ isLoading: true });
+      await authService.logout();
+      get().clearAuth();
+    } catch (error) {
+      console.error('Error logging out', error);
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  }
 })) 

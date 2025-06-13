@@ -39,6 +39,18 @@ export const authService = {
       }
       throw error
     }
+  },
+
+  refresh: async (): Promise<AuthResponse> => {
+    try {
+      const response = await axiosInstance.post<{ data: AuthResponse }>("/auth/refresh")
+      return response.data.data
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message || 'Refresh failed')
+      }
+      throw error
+    }
   }
 }
 
