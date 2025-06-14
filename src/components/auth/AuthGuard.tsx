@@ -9,17 +9,18 @@ export function AuthGuard<P extends object>(
 ) {
   return function GuardedComponent(props: P) {
     const router = useRouter()
-    const accessToken = useAuthStore((state) => state.accessToken)
+    const isInitialized = useAuthStore((state) => state.isInitialized)
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
 
     useEffect(() => {
-      if (!accessToken) {
+      if (isInitialized && !isAuthenticated) {
         // preserve current path so we can return after login
         const returnTo = window.location.pathname + window.location.search
         router.replace(`/login?from=${encodeURIComponent(returnTo)}`)
       }
-    }, [accessToken, router])
+    }, [isAuthenticated, router])
 
-    if (!accessToken) {
+    if (!isAuthenticated) {
       return null
     }
 
