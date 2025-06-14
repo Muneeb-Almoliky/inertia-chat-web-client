@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { useChat } from '@/hooks/useChat'
@@ -14,31 +14,38 @@ interface ConversationListProps {
 
 export function ConversationList({ search }: ConversationListProps) {
   const router = useRouter()
+  const pathname = usePathname()                    
+  const activeChatId = Number(pathname.split('/').pop())  
   const { chats } = useChat()
   const { auth } = useAuth()
 
-  // 1) Filter out chats without messages
-  // 2) Filter by search term
-  // 3) Sort by lastMessage time (newest first)
   const filteredAndSorted = useMemo(() => {
     return chats
-      .filter(chat => chat.lastMessage) // remove chats with no messages
       .filter(chat => {
+        // keep chats that either have messages...
+        const hasMsg = !!chat.lastMessage
+        // ...or are the active chat
+        const isActive = chat.id === activeChatId
+        if (!(hasMsg || isActive)) return false
+
         const other = chat.participants.find(p => p.userId !== auth.userId)
         return other?.name.toLowerCase().includes(search.toLowerCase())
       })
       .sort((a, b) => {
-        const aTime = new Date(a.lastMessage!.createdAt ?? 0).getTime()
-        const bTime = new Date(b.lastMessage!.createdAt ?? 0).getTime()
+        // treat missing dates as 0, so empties (unless active) end up at bottom
+        const aTime = new Date(a.lastMessage?.createdAt ?? 0).getTime()
+        const bTime = new Date(b.lastMessage?.createdAt ?? 0).getTime()
         return bTime - aTime
       })
-  }, [chats, auth.userId, search])
+  }, [chats, auth.userId, search, activeChatId])
 
   return (
     <div className="flex flex-col">
       {filteredAndSorted.map(chat => {
         const other = chat.participants.find(p => p.userId !== auth.userId)
         if (!other) return null
+
+        const lastMsg = chat.lastMessage
 
         return (
           <button
@@ -59,16 +66,18 @@ export function ConversationList({ search }: ConversationListProps) {
             <div className="flex-1 text-left">
               <div className="flex items-center justify-between">
                 <p className="font-medium">{other.name}</p>
-                <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(
-                    new Date(chat.lastMessage!.createdAt ?? 0),
-                    { addSuffix: true }
-                  )}
-                </span>
+                {lastMsg?.createdAt && (
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(
+                      new Date(lastMsg.createdAt),
+                      { addSuffix: true }
+                    )}
+                  </span>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground truncate max-w-[180px]">
-                  {chat.lastMessage!.content}
+                  {lastMsg?.content ?? "No messages yet"}
                 </p>
               </div>
             </div>
