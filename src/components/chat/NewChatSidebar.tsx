@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { UserList } from './UserList'
-import React from 'react'
+import { useState } from 'react'
 
 interface NewChatSidebarProps {
   onBack: () => void
@@ -13,7 +13,7 @@ interface NewChatSidebarProps {
 }
 
 export function NewChatSidebar({ onBack, onStartChat }: NewChatSidebarProps) {
-  const [search, setSearch] = React.useState('')
+  const [search, setSearch] = useState('')
 
   return (
     <div className="flex flex-col w-80 bg-white border-r shadow-lg">
@@ -52,7 +52,7 @@ export function NewChatSidebar({ onBack, onStartChat }: NewChatSidebarProps) {
         <UserList
           search={search}
           onSelectUser={(user) => {
-            // onStartChat(user.id)
+            onStartChat(user.id.toString())
           }}
         />
       </ScrollArea>

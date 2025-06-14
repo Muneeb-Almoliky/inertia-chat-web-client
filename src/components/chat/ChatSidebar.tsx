@@ -5,6 +5,7 @@ import { Plus, MoreVertical, LogOut } from 'lucide-react'
 import { ConversationList } from './ConversationList'
 import { useAuthStore } from '@/lib/store/auth.store'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -12,8 +13,8 @@ import { NewChatSidebar } from './NewChatSidebar'
 import { Button } from '@/components/ui/button'
 
 export function ChatSidebar() {
-  const [userSearch, setUserSearch] = React.useState('')
-  const [showNewChatSidebar, setShowNewChatSidebar] = React.useState(false)
+  const [userSearch, setUserSearch] = useState('')
+  const [showNewChatSidebar, setShowNewChatSidebar] = useState(false)
   const { logout, username } = useAuthStore()
   const router = useRouter()
   console.log('[ChatSidebar] store:', useAuthStore.getState())
@@ -29,7 +30,7 @@ export function ChatSidebar() {
   return showNewChatSidebar ? (
     <NewChatSidebar
       onBack={() => setShowNewChatSidebar(false)}
-      onStartChat={(userId) => {
+      onStartChat={() => {
         setShowNewChatSidebar(false)
       }}
     />
