@@ -39,17 +39,27 @@ export function ChatSidebar() {
       <div className="flex items-center px-4 py-3 border-b bg-gray-50">
         <h1 className="text-lg font-semibold text-gray-800">Inertia Chat</h1>
         <div className="flex-grow" />
-        <button
-          className="p-2 rounded hover:bg-gray-100 focus:outline-none focus:ring"
-          onClick={() => setShowNewChatSidebar(true)}
-        >
-          <Plus className="h-6 w-6" />
-        </button>
-        <button
-          className="p-2 rounded hover:bg-gray-100 focus:outline-none focus:ring"
-        >
-          <MoreVertical className="h-6 w-6" />
-        </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowNewChatSidebar(true)}
+            className="hover:bg-gray-100 focus:ring-2 focus:ring-gray-300"
+            title="Start new chat"
+            aria-label="Start new chat"
+          >
+            <Plus className="h-6 w-6 text-gray-700" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-gray-100 focus:ring-2 focus:ring-gray-300"
+            title="More options"
+            aria-label="More options"
+          >
+            <MoreVertical className="h-6 w-6 text-gray-700" />
+          </Button>
+
       </div>
 
       {/* Search bar above conversations */}

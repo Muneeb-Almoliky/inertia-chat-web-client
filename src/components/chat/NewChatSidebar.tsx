@@ -19,13 +19,16 @@ export function NewChatSidebar({ onBack, onStartChat }: NewChatSidebarProps) {
     <div className="flex flex-col w-80 bg-white border-r shadow-lg">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-gray-50">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onBack}
-          className="p-2 rounded hover:bg-gray-100 focus:outline-none"
+          className="hover:bg-gray-100 focus:ring-2 focus:ring-gray-300"
           aria-label="Back"
         >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
+          <ArrowLeft className="h-5 w-5 text-gray-700" />
+        </Button>
+
         <h2 className="text-lg font-semibold">New Chat</h2>
       </div>
 
