@@ -142,10 +142,13 @@ export function ConversationList({ search }: ConversationListProps) {
                   </div>
                   {lastMsg?.createdAt && (
                     <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(
-                        new Date(lastMsg.createdAt),
-                        { addSuffix: true }
-                      )}
+                      {(() => {
+                        const formatted = formatDistanceToNow(
+                          new Date(lastMsg.createdAt),
+                          { addSuffix: true }
+                        );
+                        return formatted.includes('less than a minute') ? 'just now' : formatted;
+                      })()}
                     </span>
                   )}
                 </div>
