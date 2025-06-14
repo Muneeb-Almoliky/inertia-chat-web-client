@@ -13,9 +13,10 @@ import { useChat } from "@/hooks/useChat"
 
 interface ChatInputProps {
   conversationId: string
+  onMessageSent?: () => void
 }
 
-export function ChatInput({ conversationId }: ChatInputProps) {
+export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
   const { sendMessage } = useChat(Number(conversationId))
   const [message, setMessage] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
@@ -35,6 +36,7 @@ export function ChatInput({ conversationId }: ChatInputProps) {
       setIsSending(true)
       await sendMessage(message.trim())
       setMessage("")
+      onMessageSent?.()
     } catch (error) {
       console.error("Failed to send message:", error)
     } finally {

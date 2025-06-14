@@ -6,7 +6,7 @@ import { useChat } from "@/hooks/useChat"
 import { format } from "date-fns"
 import { Loader2 } from "lucide-react"
 import { useAuth } from "@/hooks"
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface ChatMessagesProps {
   conversationId: string
@@ -15,6 +15,16 @@ interface ChatMessagesProps {
 export function ChatMessages({ conversationId }: ChatMessagesProps) {
   const { auth } = useAuth()
   const { messages, loading, chatType } = useChat(Number(conversationId))
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  // Scroll to bottom when messages change or component mounts
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   // Debugging output to track rendering and messages
   console.log("[ChatMessages] render — messages:", messages)
@@ -89,6 +99,7 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
           </div>
         )
       })}
+      <div ref={messagesEndRef} />
     </div>
   )
 }
