@@ -1,108 +1,101 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useAuth } from './useAuth'
-import { chatService } from '@/services/chatService'
-import { websocketService } from '@/services/websocketService'
-import { MessageType, type Chat, type ChatMessage } from '@/types/chat'
+import { useEffect, useMemo } from 'react';
+import { useAuth } from './useAuth';
+import { chatService } from '@/services/chatService';
+import { websocketService } from '@/services/websocketService';
+import { MessageType } from '@/types/chat';
+import { useChatStore } from '@/lib/store/chat.store';
 
 export function useChat(chatId?: number) {
-  console.log('[useChat] chatId:', chatId ? chatId : 'undefined')
-  const { auth } = useAuth()
-  const [chats, setChats] = useState<Chat[]>([])
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [loading, setLoading] = useState(true)
+  const { auth } = useAuth();
+  const {
+    setChats,
+    setMessages,
+    addMessage,
+    setLoading,
+    setActiveChat,
+    chats,
+    loading
+  } = useChatStore();
+  
+  const emptyArr = useMemo(() => [], []);
+  const messages = useChatStore(state => (chatId != null ? state.messages[chatId] ?? emptyArr : emptyArr));
 
   const chatType = useMemo(() => {
-  return chats.find(chat => chat.id === chatId)?.type
-}, [chats, chatId])
+    if (!chatId) return undefined;
+    const chat = chats.find(c => c.id === chatId);
+    return chat ? chat.type : undefined;
+  }, [chatId, chats]);
 
+  // Load user chats once
   useEffect(() => {
-    console.log('[useChat] loading chats...')
-    console.log('[useChat] auth:', auth)
     chatService.getUserChats()
       .then(setChats)
-      .catch(err => console.error('Failed to load chats:', err))
-  }, [])
+      .catch(err => console.error('Failed to load chats:', err));
+  }, [setChats]);
 
+  // When auth flips true, connect STOMP
   useEffect(() => {
-    if (auth.isAuthenticated) {
-      websocketService.connect()
-      return () => {
-        websocketService.disconnect()
-      }
-    }
-  }, [auth.isAuthenticated])
+    if (!auth.isAuthenticated) return;
+    
+    if (!websocketService.isConnected()) {  
+    websocketService.connect();
+  }
 
+  return () => {
+      if(websocketService.isConnected())
+        websocketService.disconnect();
+    }
+  }, [auth.isAuthenticated]);
+
+  // When chatId changes, handle chat activation
   useEffect(() => {
-    if (!auth.isAuthenticated || chatId == null) {
-      return
-    }
-
-    let isActive = true
-
-    const setupChat = async () => {
-      try {
-        setLoading(true)
-        // load history
-        const history = await chatService.getChatHistory(chatId)
-        if (!isActive) return
-        setMessages(history.data)
-
-        // join room (so server stores your session attrs)
-        websocketService.joinChat(chatId, auth.username)
-
-        // subscribe to incoming messages
-        websocketService.subscribeToChat(chatId, (msg) => {
-          setMessages(prev => [...prev, msg])
-        })
-      } catch (err) {
-        console.error('Chat setup failed:', err)
-      } finally {
-        if (isActive) setLoading(false)
-      }
-    }
-
-    setupChat()
-
-    // cleanup on chatId change or unmount
+    if (!chatId) return;
+    setActiveChat(chatId);
+    
     return () => {
-      isActive = false
-      websocketService.leaveChat(chatId, auth.username)
-      websocketService.unsubscribeFromChat(chatId.toString())
-      setMessages([])
-    }
-  }, [chatId, auth.isAuthenticated, auth.username])
+      websocketService.leaveChat(chatId, auth.username);
+      websocketService.unsubscribeFromChat(chatId);
+    };
+  }, [chatId, auth.username, setActiveChat]);
+
+  // When chatId is set and STOMP is connected
+  useEffect(() => {
+    if (!auth.isAuthenticated || !chatId) return;
+
+    setLoading(true);
+
+    // Load history
+    chatService.getChatHistory(chatId)
+      .then(resp => setMessages(chatId, resp.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+
+    // Setup live updates
+    const onConnect = () => {
+      websocketService.joinChat(chatId, auth.username);
+      
+      websocketService.subscribeToChat(chatId, (msg) => {
+        console.log('→ [useChat] got incoming message', msg);
+        addMessage(chatId, msg);
+      });
+    };
+
+    websocketService.onConnect(onConnect);
+  }, [chatId, auth.isAuthenticated, auth.username, setMessages, addMessage, setLoading]);
 
   const sendMessage = (content: string) => {
-    if (!chatId) return
-
-    const payload: Omit<ChatMessage, 'id' | 'createdAt'> = {
-      content,
+    if (!chatId) return;
+    
+    websocketService.sendMessage({
+      type: MessageType.CHAT,
       chatId,
+      content,
       senderId: auth.userId,
       senderName: auth.username,
-      type: MessageType.CHAT,
-    }
+    });
+  };
 
-    websocketService.sendMessage(payload)
-  }
-
-  const startChat = async (userId: number) => {
-    try {
-      return await chatService.findOrCreateOneToOneChat(userId)
-    } catch (error) {
-      console.error('Failed to start chat:', error)
-      throw error
-    }
-  }
-
-  return {
-    chats,
-    messages,
-    loading,
-    chatType,
-    sendMessage,
-    startChat,
-  }
+  return { chats, messages, loading, chatType, sendMessage };
 }
