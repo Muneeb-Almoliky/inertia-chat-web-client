@@ -1,11 +1,16 @@
 import axiosInstance from '@/api/axios'
 import type { Chat, ChatMessage } from '@/types/chat'
 
+export enum UserStatus {
+  ONLINE = 'ONLINE',
+  OFFLINE = 'OFFLINE',
+}
+
 export interface User {
   id: number
   username: string
   name: string
-  status: string
+  status: UserStatus
 }
 
 interface CreateChatRequest {

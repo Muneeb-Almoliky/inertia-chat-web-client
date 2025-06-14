@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { useChat } from '@/hooks/useChat'
 import { formatDistanceToNow } from 'date-fns'
 import { useAuth } from '@/hooks'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { MoreVertical, Trash2 } from 'lucide-react'
 import {
   AlertDialog,
@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import twemoji from 'twemoji'
+import { chatService, User, UserStatus } from '@/services/chatService'
 
 interface ConversationListProps {
   search: string
@@ -37,6 +38,24 @@ export function ConversationList({ search }: ConversationListProps) {
   const { chats, deleteChat } = useChat()
   const { auth } = useAuth()
   const [chatToDelete, setChatToDelete] = useState<number | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await chatService.getUsers()
+        setUsers(data)
+      } catch (error) {
+        console.error("Failed to fetch users:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchUsers()
+    const interval = setInterval(fetchUsers, 15000)
+    return () => clearInterval(interval)
+  }, [])
 
   const filteredAndSorted = useMemo(() => {
     return chats
@@ -81,6 +100,7 @@ export function ConversationList({ search }: ConversationListProps) {
         if (!other) return null
 
         const lastMsg = chat.lastMessage
+        const userStatus = users.find(u => u.id === other.userId)?.status || 'OFFLINE'
 
         return (
           <div
@@ -94,16 +114,32 @@ export function ConversationList({ search }: ConversationListProps) {
               onClick={() => router.push(`/chat/${chat.id}`)}
               className="flex items-center gap-3 flex-1"
             >
-              <Avatar>
-                <AvatarImage src={`https://avatar.vercel.sh/${other.name}.png`} />
-                <AvatarFallback>
-                  {other.name.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar>
+                  <AvatarImage src={`https://avatar.vercel.sh/${other.name}.png`} />
+                  <AvatarFallback>
+                    {other.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span
+                  className={cn(
+                    "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background",
+                    userStatus === UserStatus.ONLINE ? "bg-green-500" : "bg-gray-400"
+                  )}
+                />
+              </div>
 
               <div className="flex-1 text-left">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium">{other.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{other.name}</p>
+                    <span className={cn(
+                      "text-xs",
+                      userStatus === UserStatus.ONLINE ? "text-green-500" : "text-gray-400"
+                    )}>
+                      {userStatus.toLowerCase()}
+                    </span>
+                  </div>
                   {lastMsg?.createdAt && (
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(

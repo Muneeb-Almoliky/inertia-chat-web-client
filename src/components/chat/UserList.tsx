@@ -6,14 +6,7 @@ import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { chatService } from "@/services/chatService"
-
-interface User {
-  id: number
-  username: string
-  name: string
-  status: string
-}
+import { chatService, User, UserStatus } from "@/services/chatService"
 
 interface UserListProps {
   search: string
@@ -84,17 +77,28 @@ export function UserList({ search, onSelectUser }: UserListProps) {
             "border-b last:border-b-0"
           )}
         >
-          <Avatar>
-            <AvatarImage src={`https://avatar.vercel.sh/${user.username}.png`} />
-            <AvatarFallback>
-              {user.name.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar>
+              <AvatarImage src={`https://avatar.vercel.sh/${user.username}.png`} />
+              <AvatarFallback>
+                {user.name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span
+              className={cn(
+                "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background",
+                user.status === UserStatus.ONLINE ? "bg-green-500" : "bg-gray-400"
+              )}
+            />
+          </div>
           <div className="flex-1 text-left">
             <div className="flex items-center justify-between">
               <p className="font-medium">{user.name}</p>
-              <span className="text-xs text-muted-foreground">
-                {user.status}
+              <span className={cn(
+                "text-xs",
+                user.status === UserStatus.ONLINE ? "text-green-500" : "text-gray-400"
+              )}>
+                {user.status.toLowerCase()}
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
