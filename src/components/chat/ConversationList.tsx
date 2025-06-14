@@ -24,6 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import twemoji from 'twemoji'
 
 interface ConversationListProps {
   search: string
@@ -31,8 +32,8 @@ interface ConversationListProps {
 
 export function ConversationList({ search }: ConversationListProps) {
   const router = useRouter()
-  const pathname = usePathname()                    
-  const activeChatId = Number(pathname.split('/').pop())  
+  const pathname = usePathname()
+  const activeChatId = Number(pathname.split('/').pop())
   const { chats, deleteChat } = useChat()
   const { auth } = useAuth()
   const [chatToDelete, setChatToDelete] = useState<number | null>(null)
@@ -59,7 +60,7 @@ export function ConversationList({ search }: ConversationListProps) {
 
   const handleDeleteChat = async () => {
     if (!chatToDelete) return
-    
+
     try {
       await deleteChat(chatToDelete)
       // If the deleted chat was active, redirect to chat list
@@ -114,7 +115,24 @@ export function ConversationList({ search }: ConversationListProps) {
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground truncate max-w-[180px]">
-                    {lastMsg?.content ?? "No messages yet"}
+                    {lastMsg?.content ? (
+                      <span className="inline-flex items-center">
+                        <span
+                          className="inline"
+                          dangerouslySetInnerHTML={{
+                            __html: twemoji.parse(lastMsg.content, {
+                              folder: 'svg',
+                              ext: '.svg',
+                              className: 'twemoji',
+                              callback: (icon) =>
+                                `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/${icon}.svg`,
+                            }),
+                          }}
+                        />
+                      </span>
+                    ) : (
+                      "No messages yet"
+                    )}
                   </p>
                 </div>
               </div>

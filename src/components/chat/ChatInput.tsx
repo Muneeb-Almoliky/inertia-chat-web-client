@@ -9,7 +9,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import Picker from '@emoji-mart/react'
+import data from '@emoji-mart/data'
 import { useChat } from "@/hooks/useChat"
+import { emojiUrl, EmojiRenderProps } from "@/utils/emoji"
 
 interface ChatInputProps {
   conversationId: string
@@ -44,6 +52,23 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     }
   }
 
+  const onEmojiSelect = (emoji: any) => {
+    const cursorPosition = textareaRef.current?.selectionStart || 0
+    const textBeforeCursor = message.substring(0, cursorPosition)
+    const textAfterCursor = message.substring(cursorPosition)
+    const newMessage = textBeforeCursor + emoji.native + textAfterCursor
+    setMessage(newMessage)
+    
+    // Set cursor position after the inserted emoji
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPosition = cursorPosition + emoji.native.length
+        textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition)
+        textareaRef.current.focus()
+      }
+    }, 0)
+  }
+
   return (
     <div className="flex items-end gap-2">
       <div className="flex-1 flex items-end gap-2">
@@ -55,14 +80,32 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
           </TooltipTrigger>
           <TooltipContent>Attach file</TooltipContent>
         </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <Popover>
+          <PopoverTrigger asChild>
             <Button size="icon" variant="ghost">
               <Smile className="h-5 w-5" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Add emoji</TooltipContent>
-        </Tooltip>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Picker
+              data={data}
+              onEmojiSelect={onEmojiSelect}
+              previewPosition="none"
+              emojiSize={24}
+              theme="light"
+              icons="twemoji"
+              emojiButtonSize={32}
+              renderEmoji={({ emoji, size }: EmojiRenderProps) => (
+                <img
+                  src={emojiUrl(emoji.native)}
+                  width={size}
+                  height={size}
+                  alt={emoji.native}
+                />
+              )}
+            />
+          </PopoverContent>
+        </Popover>
         <Textarea
           ref={textareaRef}
           value={message}
