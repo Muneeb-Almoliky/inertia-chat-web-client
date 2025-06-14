@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useChat } from "@/hooks/useChat"
-import { useAuthStore } from "@/lib/store/auth.store"
 import { formatDistanceToNow } from "date-fns"
+import { useAuth } from "@/hooks"
 
 interface ConversationListProps {
   search: string
@@ -14,10 +14,11 @@ interface ConversationListProps {
 export function ConversationList({ search }: ConversationListProps) {
   const router = useRouter()
   const { chats } = useChat()
+  const { auth } = useAuth();
 
   const filteredChats = chats.filter((chat) => {
     const otherParticipant = chat.participants.find(
-      (p) => p.userId !== 1
+      (p) => p.userId !== auth.userId
     )
     
     return otherParticipant?.name.toLowerCase().includes(search.toLowerCase())
@@ -27,7 +28,7 @@ export function ConversationList({ search }: ConversationListProps) {
     <div className="flex flex-col">
       {filteredChats.map((chat) => {
         const otherParticipant = chat.participants.find(
-          (p) => p.userId !== 1
+          (p) => p.userId !== auth.userId
         )
 
         if (!otherParticipant) return null
