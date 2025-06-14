@@ -1,11 +1,12 @@
-"use client"
+'use client'
 
-import { useRouter } from "next/navigation"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { cn } from "@/lib/utils"
-import { useChat } from "@/hooks/useChat"
-import { formatDistanceToNow } from "date-fns"
-import { useAuth } from "@/hooks"
+import { useRouter } from 'next/navigation'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
+import { useChat } from '@/hooks/useChat'
+import { formatDistanceToNow } from 'date-fns'
+import { useAuth } from '@/hooks'
+import { useMemo } from 'react'
 
 interface ConversationListProps {
   search: string
@@ -14,24 +15,30 @@ interface ConversationListProps {
 export function ConversationList({ search }: ConversationListProps) {
   const router = useRouter()
   const { chats } = useChat()
-  const { auth } = useAuth();
+  const { auth } = useAuth()
 
-  const filteredChats = chats.filter((chat) => {
-    const otherParticipant = chat.participants.find(
-      (p) => p.userId !== auth.userId
-    )
-    
-    return otherParticipant?.name.toLowerCase().includes(search.toLowerCase())
-  })
+  // 1) Filter out chats without messages
+  // 2) Filter by search term
+  // 3) Sort by lastMessage time (newest first)
+  const filteredAndSorted = useMemo(() => {
+    return chats
+      .filter(chat => chat.lastMessage) // remove chats with no messages
+      .filter(chat => {
+        const other = chat.participants.find(p => p.userId !== auth.userId)
+        return other?.name.toLowerCase().includes(search.toLowerCase())
+      })
+      .sort((a, b) => {
+        const aTime = new Date(a.lastMessage!.createdAt ?? 0).getTime()
+        const bTime = new Date(b.lastMessage!.createdAt ?? 0).getTime()
+        return bTime - aTime
+      })
+  }, [chats, auth.userId, search])
 
   return (
     <div className="flex flex-col">
-      {filteredChats.map((chat) => {
-        const otherParticipant = chat.participants.find(
-          (p) => p.userId !== auth.userId
-        )
-
-        if (!otherParticipant) return null
+      {filteredAndSorted.map(chat => {
+        const other = chat.participants.find(p => p.userId !== auth.userId)
+        if (!other) return null
 
         return (
           <button
@@ -43,25 +50,25 @@ export function ConversationList({ search }: ConversationListProps) {
             )}
           >
             <Avatar>
-              <AvatarImage src={`https://avatar.vercel.sh/${otherParticipant.name}.png`} />
+              <AvatarImage src={`https://avatar.vercel.sh/${other.name}.png`} />
               <AvatarFallback>
-                {otherParticipant.name.slice(0, 2).toUpperCase()}
+                {other.name.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
+
             <div className="flex-1 text-left">
               <div className="flex items-center justify-between">
-                <p className="font-medium">{otherParticipant.name}</p>
-                {chat.lastMessage?.createdAt && (
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(chat.lastMessage.createdAt), {
-                      addSuffix: true,
-                    })}
-                  </span>
-                )}
+                <p className="font-medium">{other.name}</p>
+                <span className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(
+                    new Date(chat.lastMessage!.createdAt ?? 0),
+                    { addSuffix: true }
+                  )}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground truncate max-w-[180px]">
-                  {chat.lastMessage?.content || "No messages yet"}
+                  {chat.lastMessage!.content}
                 </p>
               </div>
             </div>
@@ -70,4 +77,4 @@ export function ConversationList({ search }: ConversationListProps) {
       })}
     </div>
   )
-} 
+}
