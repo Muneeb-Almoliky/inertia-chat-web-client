@@ -12,6 +12,7 @@ type ChatState = {
   addMessage: (chatId: number, message: ChatMessage) => void;
   setLoading: (loading: boolean) => void;
   setActiveChat: (chatId: number | null) => void;
+  removeChat: (chatId: number) => void;
 };
 
 const initialState: ChatState = {
@@ -23,7 +24,8 @@ const initialState: ChatState = {
     setMessages: () => {},
     addMessage: () => {},
     setLoading: () => {},
-    setActiveChat: () => {}
+    setActiveChat: () => {},
+    removeChat: () => {}
 };
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -45,6 +47,13 @@ export const useChatStore = create<ChatState>((set) => ({
     };
   }),
   setLoading: (loading) => set({ loading }),
-  setActiveChat: (activeChatId) => set({ activeChatId })
+  setActiveChat: (activeChatId) => set({ activeChatId }),
+  removeChat: (chatId) => set((state) => ({
+    chats: state.chats.filter(chat => chat.id !== chatId),
+    messages: Object.fromEntries(
+      Object.entries(state.messages).filter(([key]) => Number(key) !== chatId)
+    ),
+    activeChatId: state.activeChatId === chatId ? null : state.activeChatId
+  }))
 }));
 

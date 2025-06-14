@@ -67,5 +67,9 @@ export const chatService = {
   getUsers: async (): Promise<User[]> => {
     const response = await axiosInstance.get<User[]>('/users')
     return response.data
+  },
+
+  deleteChat: async (chatId: number): Promise<void> => {
+    await axiosInstance.delete(`/chats/${chatId}`)
   }
 }

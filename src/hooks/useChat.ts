@@ -16,7 +16,8 @@ export function useChat(chatId?: number) {
     setLoading,
     setActiveChat,
     chats,
-    loading
+    loading,
+    removeChat
   } = useChatStore();
   
   const emptyArr = useMemo(() => [], []);
@@ -40,10 +41,10 @@ export function useChat(chatId?: number) {
     if (!auth.isAuthenticated) return;
     
     if (!websocketService.isConnected()) {  
-    websocketService.connect();
-  }
-
-  return () => {
+      websocketService.connect();
+    }
+  
+    return () => {
       if(websocketService.isConnected())
         websocketService.disconnect();
     }
@@ -97,5 +98,16 @@ export function useChat(chatId?: number) {
     });
   };
 
-  return { chats, messages, loading, chatType, sendMessage };
+  const deleteChat = async (chatId: number) => {
+    try {
+      await chatService.deleteChat(chatId);
+      removeChat(chatId);
+      return true;
+    } catch (error) {
+      console.error('Failed to delete chat:', error);
+      throw error;
+    }
+  };
+
+  return { chats, messages, loading, chatType, sendMessage, deleteChat };
 }

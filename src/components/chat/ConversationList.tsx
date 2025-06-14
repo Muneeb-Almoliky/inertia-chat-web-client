@@ -6,7 +6,24 @@ import { cn } from '@/lib/utils'
 import { useChat } from '@/hooks/useChat'
 import { formatDistanceToNow } from 'date-fns'
 import { useAuth } from '@/hooks'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { MoreVertical, Trash2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface ConversationListProps {
   search: string
@@ -16,8 +33,9 @@ export function ConversationList({ search }: ConversationListProps) {
   const router = useRouter()
   const pathname = usePathname()                    
   const activeChatId = Number(pathname.split('/').pop())  
-  const { chats } = useChat()
+  const { chats, deleteChat } = useChat()
   const { auth } = useAuth()
+  const [chatToDelete, setChatToDelete] = useState<number | null>(null)
 
   const filteredAndSorted = useMemo(() => {
     return chats
@@ -39,6 +57,22 @@ export function ConversationList({ search }: ConversationListProps) {
       })
   }, [chats, auth.userId, search, activeChatId])
 
+  const handleDeleteChat = async () => {
+    if (!chatToDelete) return
+    
+    try {
+      await deleteChat(chatToDelete)
+      // If the deleted chat was active, redirect to chat list
+      if (chatToDelete === activeChatId) {
+        router.push('/chat')
+      }
+    } catch (error) {
+      console.error('Failed to delete chat:', error)
+    } finally {
+      setChatToDelete(null)
+    }
+  }
+
   return (
     <div className="flex flex-col">
       {filteredAndSorted.map(chat => {
@@ -48,42 +82,95 @@ export function ConversationList({ search }: ConversationListProps) {
         const lastMsg = chat.lastMessage
 
         return (
-          <button
+          <div
             key={chat.id}
-            onClick={() => router.push(`/chat/${chat.id}`)}
             className={cn(
-              "flex items-center gap-3 p-4 hover:bg-accent transition-colors",
+              "flex items-center gap-3 p-4 hover:bg-accent transition-colors group",
               "border-b last:border-b-0"
             )}
           >
-            <Avatar>
-              <AvatarImage src={`https://avatar.vercel.sh/${other.name}.png`} />
-              <AvatarFallback>
-                {other.name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <button
+              onClick={() => router.push(`/chat/${chat.id}`)}
+              className="flex items-center gap-3 flex-1"
+            >
+              <Avatar>
+                <AvatarImage src={`https://avatar.vercel.sh/${other.name}.png`} />
+                <AvatarFallback>
+                  {other.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
 
-            <div className="flex-1 text-left">
-              <div className="flex items-center justify-between">
-                <p className="font-medium">{other.name}</p>
-                {lastMsg?.createdAt && (
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(
-                      new Date(lastMsg.createdAt),
-                      { addSuffix: true }
-                    )}
-                  </span>
-                )}
+              <div className="flex-1 text-left">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">{other.name}</p>
+                  {lastMsg?.createdAt && (
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(
+                        new Date(lastMsg.createdAt),
+                        { addSuffix: true }
+                      )}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground truncate max-w-[180px]">
+                    {lastMsg?.content ?? "No messages yet"}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground truncate max-w-[180px]">
-                  {lastMsg?.content ?? "No messages yet"}
-                </p>
-              </div>
-            </div>
-          </button>
+            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity p-2 hover:bg-accent data-[state=open]:bg-accent rounded-full">
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                {/* <DropdownMenuItem className="cursor-pointer">
+                  <Bell className="mr-2 h-4 w-4" />
+                  <span>Mute notifications</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <Archive className="mr-2 h-4 w-4" />
+                  <span>Archive chat</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator /> */}
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setChatToDelete(chat.id)
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete chat</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )
       })}
+
+      <AlertDialog open={!!chatToDelete} onOpenChange={() => setChatToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Chat</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this chat? This will only remove it from your view.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteChat}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
