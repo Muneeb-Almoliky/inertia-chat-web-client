@@ -251,6 +251,7 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
                     style={{ display: 'none' }}
                     onChange={handleFileChange}
                     disabled={isSending || isRecording}
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,image/tiff,image/svg+xml,image/gif,video/mp4,video/quicktime,audio/mpeg,audio/ogg,audio/wav,audio/aac,audio/x-m4a,audio/flac,audio/webm,audio/mp4,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/csv,application/rtf,application/xml,text/html,application/json"
                   />
                 </label>
               </Button>
