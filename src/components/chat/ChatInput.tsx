@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Paperclip, Send, Smile, X } from "lucide-react"
+import { Paperclip, Send, Smile, X, Mic, Square } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -19,8 +19,10 @@ import data from '@emoji-mart/data'
 import { useChat } from "@/hooks/useChat"
 import { emojiUrl, EmojiRenderProps } from "@/utils/emoji"
 import { toast } from "sonner"
-import { formatFileSize, getFileType, getFileIcon } from "@/utils/file"
+import { formatFileSize, getFileType, getFileIcon, isVoiceMessage } from "@/utils/file"
+import { formatTime } from "@/utils/audio"
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from "@/constants/file"
+import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
 
 interface ChatInputProps {
   conversationId: string
@@ -35,6 +37,21 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
   const [attachments, setAttachments] = React.useState<File[]>([])
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [imagePreviews, setImagePreviews] = React.useState<{ [key: string]: string }>({})
+  
+  const [isRecording, setIsRecording] = React.useState(false)
+  const [recordingTime, setRecordingTime] = React.useState(0)
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
+  const recordingTimerRef = React.useRef<NodeJS.Timeout | undefined>(undefined)
+  const audioChunksRef = React.useRef<Blob[]>([])
+  const [audioUrl, setAudioUrl] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl)
+      }
+    }
+  }, [audioUrl])
 
   React.useEffect(() => {
     attachments.forEach(file => {
@@ -113,7 +130,6 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     const newMessage = textBeforeCursor + emoji.native + textAfterCursor
     setMessage(newMessage)
     
-    // Set cursor position after the inserted emoji
     setTimeout(() => {
       if (textareaRef.current) {
         const newCursorPosition = cursorPosition + emoji.native.length
@@ -122,6 +138,50 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
       }
     }, 0)
   }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
+        const audioFile = new File([audioBlob], `voice-message-${Date.now()}.webm`, { type: 'audio/webm' });
+        setAttachments(prev => [...prev, audioFile]);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast.error('Failed to start voice recording. Please check your microphone permissions.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -145,6 +205,14 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
                       {getFileType(file)} • {formatFileSize(file.size)}
                     </span>
                   </div>
+                </div>
+              ) : isVoiceMessage(file) ? (
+                <div className="flex items-center gap-2">
+                  {getFileIcon(file)}
+                  <VoiceMessagePlayer
+                    url={audioUrl || ''}
+                    duration={recordingTime}
+                  />
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -182,7 +250,7 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
                     multiple
                     style={{ display: 'none' }}
                     onChange={handleFileChange}
-                    disabled={isSending}
+                    disabled={isSending || isRecording}
                   />
                 </label>
               </Button>
@@ -220,16 +288,40 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={isRecording ? `Recording... ${formatTime(recordingTime)}` : "Type a message..."}
             className="min-h-[50px] max-h-[200px] flex-1"
             rows={1}
-            disabled={isSending}
+            disabled={isSending || isRecording}
           />
         </div>
+        {isRecording ? (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {formatTime(recordingTime)}
+            </span>
+            <Button
+              size="icon"
+              variant="destructive"
+              onClick={stopRecording}
+              className="animate-pulse"
+            >
+              <Square className="h-5 w-5" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={startRecording}
+            disabled={isSending}
+          >
+            <Mic className="h-5 w-5" />
+          </Button>
+        )}
         <Button
           size="icon"
           onClick={handleSend}
-          disabled={isSending || (message.trim().length === 0 && attachments.length === 0)}
+          disabled={isSending || isRecording || (message.trim().length === 0 && attachments.length === 0)}
         >
           <Send className="h-5 w-5" />
         </Button>

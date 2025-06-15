@@ -1,16 +1,17 @@
 "use client";
 
+import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useChat } from "@/hooks/useChat"
 import { format } from "date-fns"
-import { Loader2, FileText, Image, File, Video, Music, Download } from "lucide-react"
+import { Loader2, FileText, Image, File, Video, Music, Download, Mic } from "lucide-react"
 import { useAuth } from "@/hooks"
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Attachment, AttachmentType } from "@/types/chat"
 import { getApiBaseUrl } from "@/utils/api"
-import { formatFileSize } from "@/utils/file"
 import { Button } from "@/components/ui/button"
+import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
 
 interface ChatMessagesProps {
   conversationId: string
@@ -24,6 +25,8 @@ const getAttachmentIcon = (type: AttachmentType) => {
       return <Video className="h-4 w-4 text-purple-500" />;
     case AttachmentType.AUDIO:
       return <Music className="h-4 w-4 text-green-500" />;
+    case AttachmentType.VOICE:
+      return <Mic className="h-4 w-4 text-green-500" />;
     case AttachmentType.DOCUMENT:
       return <FileText className="h-4 w-4 text-red-500" />;
     default:
@@ -48,7 +51,7 @@ const getGridClass = (count: number) => {
 
 const getImageClass = (count: number, index: number) => {
   if (count === 1) {
-    return "max-w-md max-h-96"; // Allow single image to show in its natural size up to a reasonable max
+    return "max-w-md max-h-96";
   }
   if (count === 3 && index === 0) {
     return "row-span-2";
@@ -64,60 +67,39 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
   const { auth } = useAuth()
   const { messages, loading, chatType } = useChat(Number(conversationId))
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  // Scroll to bottom when messages change or component mounts
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
-  // Debugging output to track rendering and messages
-  console.log("[ChatMessages] render — messages:", messages)
-
-  // Effect to log messages whenever they change
-  useEffect(() => {
-    console.log("[ChatMessages] messages changed:", messages)
-  }, [messages])
-
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
-  if (messages.length === 0) {
-    return (
-      <div className="p-4 text-center text-muted-foreground">
-        No messages yet.
-      </div>
-    )
-  }
+  const handleDownload = async (url: string, fileName: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  };
 
   const renderAttachments = (attachments: Attachment[], isCurrentUser: boolean) => {
     const images = attachments.filter(att => att.type === AttachmentType.IMAGE);
-    const otherFiles = attachments.filter(att => att.type !== AttachmentType.IMAGE);
-
-    const handleDownload = async (url: string, fileName: string) => {
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(downloadUrl);
-      } catch (error) {
-        console.error('Error downloading file:', error);
-      }
-    };
+    const voiceMessages = attachments.filter(att => att.type === AttachmentType.VOICE);
+    const otherFiles = attachments.filter(att => 
+      att.type !== AttachmentType.IMAGE && att.type !== AttachmentType.VOICE
+    );
 
     return (
       <div className="flex flex-col gap-2">
@@ -164,6 +146,32 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                     >
                       <Image className="h-4 w-4" />
                     </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {voiceMessages.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {voiceMessages.map((att) => {
+              const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
+              const audioId = `audio-${att.id}`;
+              return (
+                <div 
+                  key={att.id}
+                  className={cn(
+                    "rounded-lg overflow-hidden border group hover:border-primary/50 transition-colors duration-200",
+                    isCurrentUser ? "border-primary/20" : "border-border"
+                  )}
+                >
+                  <div className="p-2">
+                    <VoiceMessagePlayer
+                      url={fullUrl}
+                      duration={att.duration || 0}
+                      onPlay={() => setPlayingAudio(audioId)}
+                      onPause={() => setPlayingAudio(null)}
+                    />
                   </div>
                 </div>
               );
@@ -221,6 +229,22 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
       </div>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="p-4 text-center text-muted-foreground">
+        No messages yet.
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4 p-4">

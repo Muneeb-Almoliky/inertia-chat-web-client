@@ -1,4 +1,4 @@
-import { FileText, Image, File } from "lucide-react"
+import { FileText, Image, File, Video, Music, Mic } from "lucide-react"
 
 export const getFileIcon = (file: File) => {
   if (file.type.startsWith('image/')) {
@@ -6,6 +6,15 @@ export const getFileIcon = (file: File) => {
   }
   if (file.type === 'application/pdf') {
     return <FileText className="h-4 w-4 text-red-500" />;
+  }
+  if (file.type.startsWith('video/')) {
+    return <Video className="h-4 w-4 text-purple-500" />;
+  }
+  if (file.type.startsWith('audio/')) {
+    if (file.type === 'audio/webm' || file.type === 'audio/mp4') {
+      return <Mic className="h-4 w-4 text-green-500" />;
+    }
+    return <Music className="h-4 w-4 text-green-500" />;
   }
   return <File className="h-4 w-4 text-gray-500" />;
 }
@@ -27,6 +36,15 @@ export const getFileType = (file: File): string => {
   if (file.type === 'application/pdf') {
     return 'PDF';
   }
+  if (file.type.startsWith('video/')) {
+    return 'Video';
+  }
+  if (file.type.startsWith('audio/')) {
+    if (file.type === 'audio/webm' || file.type === 'audio/mp4') {
+      return 'Voice Message';
+    }
+    return 'Audio';
+  }
   if (file.type.includes('word')) {
     return 'Word';
   }
@@ -40,4 +58,8 @@ export const getFileType = (file: File): string => {
     return 'Text';
   }
   return 'File';
+}
+
+export const isVoiceMessage = (file: File): boolean => {
+  return file.type === 'audio/webm' || file.type === 'audio/mp4';
 }

@@ -25,6 +25,7 @@
     "@stomp/stompjs": "^7.1.1",
     "@tanstack/react-query": "^5.79.0",
     "@types/sockjs-client": "^1.5.4",
+    "@wavesurfer/react": "^1.0.11",
     "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -41,6 +42,8 @@
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.3.0",
     "twemoji": "^14.0.2",
+    "wavesurfer-react": "^3.0.4",
+    "wavesurfer.js": "^7.9.5",
     "zod": "^3.25.39",
     "zustand": "^5.0.5"
   },

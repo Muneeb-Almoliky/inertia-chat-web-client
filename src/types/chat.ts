@@ -14,6 +14,7 @@ export enum AttachmentType {
   DOCUMENT = 'DOCUMENT',
   VIDEO = 'VIDEO',
   AUDIO = 'AUDIO',
+  VOICE = 'VOICE',
   GIF = 'GIF',
 }
 
@@ -22,6 +23,8 @@ export interface Attachment {
   type: AttachmentType;
   url: string;
   fileName: string;
+  duration?: number;
+  size?: number;
 }
 
 export interface ChatMessage {
