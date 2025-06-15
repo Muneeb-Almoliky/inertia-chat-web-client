@@ -114,10 +114,12 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                 <div 
                   key={att.id}
                   className={cn(
-                    "relative overflow-hidden rounded-lg group",
+                    "relative overflow-hidden rounded-sm border transition-colors duration-200 group cursor-pointer",
+                    isCurrentUser ? "border-white/10" : "border-border",
                     images.length === 1 ? "flex justify-center" : "aspect-square",
                     getImageClass(images.length, idx)
                   )}
+                  onClick={() => window.open(`${getApiBaseUrl()}${att.url}`, '_blank')}
                 >
                   <div className="block h-full w-full">
                     <img
@@ -129,22 +131,17 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                       )}
                     />
                   </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                     <Button
                       size="icon"
                       variant="secondary"
-                      className="h-8 w-8 rounded-full cursor-pointer hover:bg-background/80"
-                      onClick={() => handleDownload(fullUrl, att.fileName)}
+                      className="size-8 rounded-full cursor-pointer hover:bg-background/80"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(fullUrl, att.fileName);
+                      }}
                     >
                       <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="h-8 w-8 rounded-full cursor-pointer hover:bg-background/80"
-                      onClick={() => window.open(fullUrl, '_blank')}
-                    >
-                      <Image className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -161,8 +158,8 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                 <div 
                   key={att.id}
                   className={cn(
-                    "rounded-lg overflow-hidden border group hover:border-primary/50 transition-colors duration-200",
-                    isCurrentUser ? "border-primary/20" : "border-border"
+                    "rounded-sm overflow-hidden border transition-colors duration-200",
+                    isCurrentUser ? "border-white/10" : "border-border"
                   )}
                 >
                   <div className="p-2">
@@ -171,6 +168,7 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                       duration={att.duration || 0}
                       onPlay={() => setPlayingAudio(audioId)}
                       onPause={() => setPlayingAudio(null)}
+                      isCurrentUser={isCurrentUser}
                     />
                   </div>
                 </div>
@@ -186,20 +184,13 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                 <div 
                   key={att.id}
                   className={cn(
-                    "rounded-lg overflow-hidden border group hover:border-primary/50 transition-colors duration-200",
-                    isCurrentUser ? "border-primary/20" : "border-border"
+                    "rounded-sm overflow-hidden border transition-colors duration-200 group cursor-pointer",
+                    isCurrentUser ? "border-white/10" : "border-border"
                   )}
+                  onClick={() => window.open(`${getApiBaseUrl()}${att.url}`, '_blank')}
                 >
                   <div className="flex items-center gap-2 p-2">
-                    <a
-                      href={fullUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        "flex-1 flex items-center gap-2 transition-colors rounded-md p-1.5",
-                        isCurrentUser ? "text-primary-foreground" : "text-foreground"
-                      )}
-                    >
+                    <div className="flex-1 flex items-center gap-2 transition-colors rounded-md p-1.5">
                       <div className="flex-shrink-0">
                         {getAttachmentIcon(att.type)}
                       </div>
@@ -211,12 +202,18 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                           {att.type.toLowerCase()}
                         </div>
                       </div>
-                    </a>
+                    </div>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer hover:bg-muted/30"
-                      onClick={() => handleDownload(fullUrl, att.fileName)}
+                      className={cn(
+                        "size-8 rounded-full cursor-pointer",
+                        isCurrentUser ? "hover:bg-white/10 hover:text-white" : "hover:bg-border"
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(fullUrl, att.fileName);
+                      }}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -296,7 +293,7 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                 {hasAttachments && (
                   <div
                     className={cn(
-                      "rounded-lg px-4 py-2 max-w-md",
+                      "rounded-lg p-2 max-w-md",
                       isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
                     )}
                   >
@@ -306,7 +303,7 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                 {hasContent && (
                   <div
                     className={cn(
-                      "rounded-lg px-4 py-2 max-w-md",
+                      "rounded-lg p-2 max-w-md",
                       isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
                     )}
                   >

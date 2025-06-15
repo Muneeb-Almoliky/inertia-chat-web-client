@@ -5,15 +5,17 @@ import { Play, Pause } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import WavesurferPlayer from '@wavesurfer/react'
 import { getAudioDuration, formatTime } from "@/utils/audio"
+import { cn } from "@/lib/utils"
 
 interface VoiceMessagePlayerProps {
   url: string
   duration?: number
+  isCurrentUser?: boolean;
   onPlay?: () => void
   onPause?: () => void
 }
 
-export function VoiceMessagePlayer({ url, duration = 0, onPlay, onPause }: VoiceMessagePlayerProps) {
+export function VoiceMessagePlayer({ url, duration = 0, isCurrentUser = false, onPlay, onPause }: VoiceMessagePlayerProps) {
   const [wavesurfer, setWavesurfer] = React.useState<any>(null)
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [currentDuration, setCurrentDuration] = React.useState(duration)
@@ -102,6 +104,10 @@ export function VoiceMessagePlayer({ url, duration = 0, onPlay, onPause }: Voice
       <Button
         size="icon"
         variant="ghost"
+        className={cn(
+          "size-8 rounded-full cursor-pointer",
+          isCurrentUser ? "hover:bg-white/10 hover:text-white" : "hover:bg-border"
+        )}
         onClick={handlePlayPause}
       >
         {isPlaying ? (
