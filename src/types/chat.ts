@@ -9,6 +9,21 @@ export enum MessageType {
   LEAVE = 'LEAVE',
 }
 
+export enum AttachmentType {
+  IMAGE = 'IMAGE',
+  DOCUMENT = 'DOCUMENT',
+  VIDEO = 'VIDEO',
+  AUDIO = 'AUDIO',
+  GIF = 'GIF',
+}
+
+export interface Attachment {
+  id: number;
+  type: AttachmentType;
+  url: string;
+  fileName: string;
+}
+
 export interface ChatMessage {
   id?: number
   content: string
@@ -17,6 +32,7 @@ export interface ChatMessage {
   chatId: number
   createdAt?: string
   type: MessageType
+  attachments?: Attachment[]
 }
 
 export interface Chat {

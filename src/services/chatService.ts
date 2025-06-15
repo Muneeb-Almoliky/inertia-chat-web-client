@@ -76,5 +76,28 @@ export const chatService = {
 
   deleteChat: async (chatId: number): Promise<void> => {
     await axiosInstance.delete(`/chats/${chatId}`)
+  },
+
+  sendMessageWithAttachments: async (
+    chatId: number,
+    content: string,
+    attachments?: File[]
+  ): Promise<any> => {
+    const formData = new FormData();
+    if (content) formData.append('content', content);
+    if (attachments && attachments.length > 0) {
+      attachments.forEach((file) => {
+        formData.append('attachments', file);
+      });
+    }
+    try {
+      const response = await axiosInstance.post(`/chats/${chatId}/messages`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('[chatService] sendMessageWithAttachments error:', error);
+      throw error;
+    }
   }
 }

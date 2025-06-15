@@ -6,6 +6,7 @@ import { chatService } from '@/services/chatService';
 import { websocketService } from '@/services/websocketService';
 import { MessageType } from '@/types/chat';
 import { useChatStore } from '@/lib/store/chat.store';
+import { MAX_FILE_SIZE_LABEL } from '@/constants/file';
 
 export function useChat(chatId?: number) {
   const { auth } = useAuth();
@@ -86,16 +87,19 @@ export function useChat(chatId?: number) {
     websocketService.onConnect(onConnect);
   }, [chatId, auth.isAuthenticated, auth.username, setMessages, addMessage, setLoading]);
 
-  const sendMessage = (content: string) => {
+  const sendMessage = async (content: string, attachments?: File[]) => {
     if (!chatId) return;
-    
-    websocketService.sendMessage({
-      type: MessageType.CHAT,
-      chatId,
-      content,
-      senderId: auth.userId,
-      senderName: auth.username,
-    });
+    try {
+      const res = await chatService.sendMessageWithAttachments(chatId, content, attachments);
+      console.log('[sendMessage] REST response:', res);
+      return res;
+    } catch (err: any) {
+      console.error('[sendMessage] Error sending message:', err);
+      if (err.response?.data?.errors?.includes('Maximum upload size exceeded')) {
+        throw new Error(`File size too large. Maximum file size is ${MAX_FILE_SIZE_LABEL} per file.`);
+      }
+      throw err;
+    }
   };
 
   const deleteChat = async (chatId: number) => {

@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { authService } from '@/services/authService';
+import { getApiBaseUrl } from '@/utils/api';
 
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9090',
+  baseURL: getApiBaseUrl(),
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });

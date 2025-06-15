@@ -4,12 +4,60 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useChat } from "@/hooks/useChat"
 import { format } from "date-fns"
-import { Loader2 } from "lucide-react"
+import { Loader2, FileText, Image, File, Video, Music, Download } from "lucide-react"
 import { useAuth } from "@/hooks"
 import { useEffect, useRef } from "react";
+import { Attachment, AttachmentType } from "@/types/chat"
+import { getApiBaseUrl } from "@/utils/api"
+import { formatFileSize } from "@/utils/file"
+import { Button } from "@/components/ui/button"
 
 interface ChatMessagesProps {
   conversationId: string
+}
+
+const getAttachmentIcon = (type: AttachmentType) => {
+  switch (type) {
+    case AttachmentType.IMAGE:
+      return <Image className="h-4 w-4 text-blue-500" />;
+    case AttachmentType.VIDEO:
+      return <Video className="h-4 w-4 text-purple-500" />;
+    case AttachmentType.AUDIO:
+      return <Music className="h-4 w-4 text-green-500" />;
+    case AttachmentType.DOCUMENT:
+      return <FileText className="h-4 w-4 text-red-500" />;
+    default:
+      return <File className="h-4 w-4 text-gray-500" />;
+  }
+}
+
+const getGridClass = (count: number) => {
+  switch (count) {
+    case 1:
+      return "grid-cols-1";
+    case 2:
+      return "grid-cols-2";
+    case 3:
+      return "grid-cols-2";
+    case 4:
+      return "grid-cols-2";
+    default:
+      return "grid-cols-3";
+  }
+}
+
+const getImageClass = (count: number, index: number) => {
+  if (count === 1) {
+    return "max-w-md max-h-96"; // Allow single image to show in its natural size up to a reasonable max
+  }
+  if (count === 3 && index === 0) {
+    return "row-span-2";
+  }
+  return "";
+}
+
+const getImageFit = (count: number) => {
+  return count === 1 ? "contain" : "cover";
 }
 
 export function ChatMessages({ conversationId }: ChatMessagesProps) {
@@ -50,6 +98,130 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
     )
   }
 
+  const renderAttachments = (attachments: Attachment[], isCurrentUser: boolean) => {
+    const images = attachments.filter(att => att.type === AttachmentType.IMAGE);
+    const otherFiles = attachments.filter(att => att.type !== AttachmentType.IMAGE);
+
+    const handleDownload = async (url: string, fileName: string) => {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch (error) {
+        console.error('Error downloading file:', error);
+      }
+    };
+
+    return (
+      <div className="flex flex-col gap-2">
+        {images.length > 0 && (
+          <div className={cn(
+            "grid gap-1",
+            getGridClass(images.length)
+          )}>
+            {images.map((att, idx) => {
+              const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
+              return (
+                <div 
+                  key={att.id}
+                  className={cn(
+                    "relative overflow-hidden rounded-lg group",
+                    images.length === 1 ? "flex justify-center" : "aspect-square",
+                    getImageClass(images.length, idx)
+                  )}
+                >
+                  <div className="block h-full w-full">
+                    <img
+                      src={fullUrl}
+                      alt={att.fileName}
+                      className={cn(
+                        "h-full w-full transition-transform duration-300 group-hover:scale-105",
+                        images.length === 1 ? "object-contain" : "object-cover"
+                      )}
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-8 w-8 rounded-full cursor-pointer hover:bg-background/80"
+                      onClick={() => handleDownload(fullUrl, att.fileName)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-8 w-8 rounded-full cursor-pointer hover:bg-background/80"
+                      onClick={() => window.open(fullUrl, '_blank')}
+                    >
+                      <Image className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {otherFiles.length > 0 && (
+          <div className="flex flex-col gap-1">
+            {otherFiles.map((att) => {
+              const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
+              return (
+                <div 
+                  key={att.id}
+                  className={cn(
+                    "rounded-lg overflow-hidden border group hover:border-primary/50 transition-colors duration-200",
+                    isCurrentUser ? "border-primary/20" : "border-border"
+                  )}
+                >
+                  <div className="flex items-center gap-2 p-2">
+                    <a
+                      href={fullUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "flex-1 flex items-center gap-2 transition-colors rounded-md p-1.5",
+                        isCurrentUser ? "text-primary-foreground" : "text-foreground"
+                      )}
+                    >
+                      <div className="flex-shrink-0">
+                        {getAttachmentIcon(att.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {att.fileName}
+                        </div>
+                        <div className="text-xs opacity-70">
+                          {att.type.toLowerCase()}
+                        </div>
+                      </div>
+                    </a>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer hover:bg-muted/30"
+                      onClick={() => handleDownload(fullUrl, att.fileName)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-4 p-4">
       {messages
@@ -62,6 +234,8 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
         })
         .map((message, i) => {
           const isCurrentUser = message.senderId === auth.userId
+          const hasAttachments = Array.isArray(message.attachments) && message.attachments.length > 0;
+          const hasContent = message?.content && message?.content.trim().length > 0;
 
           if (message.type !== "CHAT") {
             return (
@@ -75,7 +249,7 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
 
           return (
             <div
-              key={message.id}
+              key={`${message.id ?? 'msg'}-${i}`}
               className={cn("flex gap-3", isCurrentUser && "flex-row-reverse")}
             >
               {chatType === "GROUP" && (
@@ -86,7 +260,7 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                   </AvatarFallback>
                 </Avatar>
               )}
-              <div className={cn("flex flex-col", isCurrentUser && "items-end")}>
+              <div className={cn("flex flex-col gap-1", isCurrentUser && "items-end")}>
                 <div className="flex items-center gap-2">
                   {chatType === "GROUP" && <span className="text-sm font-medium">{message.senderName}</span>}
                   {message.createdAt && (
@@ -95,14 +269,26 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                     </span>
                   )}
                 </div>
-                <div
-                  className={cn(
-                    "rounded-lg px-4 py-2 max-w-md",
-                    isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
-                  )}
-                >
-                  {message.content}
-                </div>
+                {hasAttachments && (
+                  <div
+                    className={cn(
+                      "rounded-lg px-4 py-2 max-w-md",
+                      isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                    )}
+                  >
+                    {renderAttachments(message.attachments!, isCurrentUser)}
+                  </div>
+                )}
+                {hasContent && (
+                  <div
+                    className={cn(
+                      "rounded-lg px-4 py-2 max-w-md",
+                      isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                    )}
+                  >
+                    {message.content}
+                  </div>
+                )}
               </div>
             </div>
           )
