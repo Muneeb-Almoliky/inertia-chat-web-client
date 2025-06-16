@@ -75,17 +75,31 @@ export function VoiceMessagePlayer({ url, duration = 0, isCurrentUser = false, o
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex flex-col flex-1">
-        <span className="text-sm">Voice Message</span>
-        <span className="text-xs text-muted-foreground">
-          {currentDuration > 0 ? `${formatTime(currentTime)} / ${formatTime(currentDuration)}` : 'Loading...'}
-        </span>
-        <div className="w-full h-10">
+    <div className={cn(
+      "flex items-center gap-3",
+      isCurrentUser ? "flex-row-reverse" : "flex-row"
+    )}>
+      <Button
+        size="icon"
+        variant="ghost"
+        className={cn(
+          "size-8 rounded-full cursor-pointer",
+          isCurrentUser ? "hover:bg-white/10 hover:text-white" : "hover:bg-border"
+        )}
+        onClick={handlePlayPause}
+      >
+        {isPlaying ? (
+          <Pause className="h-5 w-5" />
+        ) : (
+          <Play className="h-5 w-5" />
+        )}
+      </Button>
+      <div className="flex-1 min-w-0 w-[200px]">
+        <div className="w-full h-8">
           <WavesurferPlayer
-            height={40}
-            waveColor="rgb(156, 163, 175)"
-            progressColor="rgb(59, 130, 246)"
+            height={32}
+            waveColor={isCurrentUser ? "#5c6d96" : "#bbb"}
+            progressColor={isCurrentUser ? "#b8c0d4" : "#555"}
             cursorColor="transparent"
             url={url}
             onReady={onReady}
@@ -98,24 +112,19 @@ export function VoiceMessagePlayer({ url, duration = 0, isCurrentUser = false, o
               onPause?.()
             }}
             interact={true}
+            barWidth={2}
+            barGap={2}
+            barRadius={2}
+            normalize={true}
           />
         </div>
+        <div className={cn(
+          "text-xs mt-1",
+          isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground"
+        )}>
+          {currentDuration > 0 ? `${formatTime(currentTime)} / ${formatTime(currentDuration)}` : 'Loading...'}
+        </div>
       </div>
-      <Button
-        size="icon"
-        variant="ghost"
-        className={cn(
-          "size-8 rounded-full cursor-pointer",
-          isCurrentUser ? "hover:bg-white/10 hover:text-white" : "hover:bg-border"
-        )}
-        onClick={handlePlayPause}
-      >
-        {isPlaying ? (
-          <Pause className="h-4 w-4" />
-        ) : (
-          <Play className="h-4 w-4" />
-        )}
-      </Button>
     </div>
   )
 }
