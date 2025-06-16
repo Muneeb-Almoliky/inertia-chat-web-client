@@ -12,6 +12,8 @@ import { Attachment, AttachmentType } from "@/types/chat"
 import { getApiBaseUrl } from "@/utils/api"
 import { Button } from "@/components/ui/button"
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
+import { useScrollActivity } from "@/hooks"
+import { isSameDay } from "@/utils/date"
 
 interface ChatMessagesProps {
   conversationId: string
@@ -67,7 +69,25 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
   const { auth } = useAuth()
   const { messages, loading, chatType } = useChat(Number(conversationId))
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [isScrolling, setIsScrolling] = useState(true);
+
+  useScrollActivity(containerRef, () => {
+    setIsScrolling(false);
+  }, 500);
+
+  const handleScroll = () => {
+    setIsScrolling(true);
+  };
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true });
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -244,7 +264,11 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div 
+      ref={containerRef} 
+      className="flex flex-col gap-4 p-4 relative chat-messages-container overflow-y-auto h-full"
+      onScroll={handleScroll}
+    >
       {messages
         .filter(message => {
           const content = message.content?.toLowerCase() || "";
@@ -253,10 +277,29 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
             !content.includes("disconnected")
           );
         })
-        .map((message, i) => {
+        .map((message, i, filteredMessages) => {
           const isCurrentUser = message.senderId === auth.userId
           const hasAttachments = Array.isArray(message.attachments) && message.attachments.length > 0;
           const hasContent = message?.content && message?.content.trim().length > 0;
+
+          const showDateHeader = i === 0 || !isSameDay(
+            new Date(message.createdAt || ''),
+            new Date(filteredMessages[i - 1].createdAt || '')
+          );
+
+          const getDateHeader = (date: Date) => {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (date.toDateString() === today.toDateString()) {
+              return 'Today';
+            } else if (date.toDateString() === yesterday.toDateString()) {
+              return 'Yesterday';
+            } else {
+              return format(date, 'MMMM d, yyyy');
+            }
+          };
 
           if (message.type !== "CHAT") {
             return (
@@ -269,49 +312,60 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
           }
 
           return (
-            <div
-              key={`${message.id ?? 'msg'}-${i}`}
-              className={cn("flex gap-3", isCurrentUser && "flex-row-reverse")}
-            >
-              {chatType === "GROUP" && (
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://avatar.vercel.sh/${message.senderName}.png`} />
-                  <AvatarFallback>
-                    {message.senderName.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+            <React.Fragment key={`${message.id ?? 'msg'}-${i}`}>
+              {showDateHeader && message.createdAt && (
+                <div 
+                  className={cn(
+                    "flex justify-center transition-all duration-300",
+                    isScrolling ? "sticky top-2 z-10" : "relative"
+                  )}
+                >
+                  <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                    {getDateHeader(new Date(message.createdAt))}
+                  </span>
+                </div>
               )}
-              <div className={cn("flex flex-col gap-1", isCurrentUser && "items-end")}>
-                <div className="flex items-center gap-2">
-                  {chatType === "GROUP" && <span className="text-sm font-medium">{message.senderName}</span>}
-                  {message.createdAt && (
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(message.createdAt), "HH:mm")}
-                    </span>
+              <div className={cn("flex gap-3", isCurrentUser && "flex-row-reverse")}>
+                {chatType === "GROUP" && (
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={`https://avatar.vercel.sh/${message.senderName}.png`} />
+                    <AvatarFallback>
+                      {message.senderName.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+                <div className={cn("flex flex-col gap-1", isCurrentUser && "items-end")}>
+                  <div className="flex items-center gap-2">
+                    {chatType === "GROUP" && <span className="text-sm font-medium">{message.senderName}</span>}
+                    {message.createdAt && (
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(message.createdAt), "h:mm a")}
+                      </span>
+                    )}
+                  </div>
+                  {hasAttachments && (
+                    <div
+                      className={cn(
+                        "rounded-lg p-2 max-w-md",
+                        isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                      )}
+                    >
+                      {renderAttachments(message.attachments!, isCurrentUser)}
+                    </div>
+                  )}
+                  {hasContent && (
+                    <div
+                      className={cn(
+                        "rounded-lg p-2 max-w-md",
+                        isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                      )}
+                    >
+                      {message.content}
+                    </div>
                   )}
                 </div>
-                {hasAttachments && (
-                  <div
-                    className={cn(
-                      "rounded-lg p-2 max-w-md",
-                      isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
-                    )}
-                  >
-                    {renderAttachments(message.attachments!, isCurrentUser)}
-                  </div>
-                )}
-                {hasContent && (
-                  <div
-                    className={cn(
-                      "rounded-lg p-2 max-w-md",
-                      isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
-                    )}
-                  >
-                    {message.content}
-                  </div>
-                )}
               </div>
-            </div>
+            </React.Fragment>
           )
         })}
       <div ref={messagesEndRef} />

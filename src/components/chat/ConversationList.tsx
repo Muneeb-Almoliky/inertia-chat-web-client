@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import twemoji from 'twemoji'
 import { chatService, User, UserStatus } from '@/services/chatService'
+import { formatMessageDate } from '@/utils/date'
 
 interface ConversationListProps {
   search: string
@@ -142,13 +143,7 @@ export function ConversationList({ search }: ConversationListProps) {
                   </div>
                   {lastMsg?.createdAt && (
                     <span className="text-xs text-muted-foreground">
-                      {(() => {
-                        const formatted = formatDistanceToNow(
-                          new Date(lastMsg.createdAt),
-                          { addSuffix: true }
-                        );
-                        return formatted.includes('less than a minute') ? 'just now' : formatted;
-                      })()}
+                      {formatMessageDate(new Date(lastMsg.createdAt))}
                     </span>
                   )}
                 </div>
