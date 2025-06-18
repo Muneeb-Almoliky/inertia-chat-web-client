@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { NewChatSidebar } from './NewChatSidebar'
+import { ProfileSidebar } from './ProfileSidebar'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -22,6 +23,7 @@ import {
 export function ChatSidebar() {
   const [userSearch, setUserSearch] = useState('')
   const [showNewChatSidebar, setShowNewChatSidebar] = useState(false)
+  const [showProfileSidebar, setShowProfileSidebar] = useState(false)
   const { logout, username } = useAuthStore()
   const router = useRouter()
   console.log('[ChatSidebar] store:', useAuthStore.getState())
@@ -34,18 +36,22 @@ export function ChatSidebar() {
     }
   }
 
-  const handleProfileSettings = () => {
-    router.push('/profile')
+  if (showProfileSidebar) {
+    return <ProfileSidebar onBack={() => setShowProfileSidebar(false)} />
   }
 
-  return showNewChatSidebar ? (
-    <NewChatSidebar
-      onBack={() => setShowNewChatSidebar(false)}
-      onStartChat={() => {
-        setShowNewChatSidebar(false)
-      }}
-    />
-  ) : (
+  if (showNewChatSidebar) {
+    return (
+      <NewChatSidebar
+        onBack={() => setShowNewChatSidebar(false)}
+        onStartChat={() => {
+          setShowNewChatSidebar(false)
+        }}
+      />
+    )
+  }
+
+  return (
     <div className="flex flex-col w-80 bg-white border-r shadow-lg">
       <div className="flex items-center px-4 py-3 border-b bg-gray-50">
         <h1 className="text-lg font-semibold text-gray-800">Inertia Chat</h1>
@@ -74,7 +80,7 @@ export function ChatSidebar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={handleProfileSettings}>
+            <DropdownMenuItem onClick={() => setShowProfileSidebar(true)}>
               <Settings className="mr-2 h-4 w-4" />
               <span>Profile Settings</span>
             </DropdownMenuItem>
