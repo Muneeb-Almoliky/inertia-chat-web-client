@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Chat, ChatMessage } from '@/types/chat';
+import { Chat, ChatMessage, MessageType } from '@/types/chat';
 
 interface ChatStore {
   chats: Chat[];
@@ -50,11 +50,23 @@ export const useChatStore = create<ChatStore>((set) => ({
   })),
   addMessage: (chatId, message) => set((state) => {
     const currentMessages = state.messages[chatId] || [];
+
+    const newMessages = {
+      ...state.messages,
+      [chatId]: [...currentMessages, message]
+    }
+
+    let updatedChats = state.chats;
+    if (message.type === MessageType.CHAT) {
+      updatedChats = state.chats
+        .map(chat =>
+          chat.id === chatId
+            ? { ...chat, lastMessage: message }
+            : chat
+        )}
     return {
-      messages: {
-        ...state.messages,
-        [chatId]: [...currentMessages, message]
-      }
+      messages: newMessages,
+      chats: updatedChats
     };
   }),
   updateMessage: (chatId, messageId, content) =>
@@ -98,4 +110,3 @@ export const useChatStore = create<ChatStore>((set) => ({
     ),
   })),
 }));
-
