@@ -1,23 +1,6 @@
 import axiosInstance from '@/api/axios'
 import type { Chat, ChatMessage } from '@/types/chat'
 
-export enum UserStatus {
-  ONLINE = 'ONLINE',
-  OFFLINE = 'OFFLINE',
-}
-
-export interface User {
-  id: number
-  username: string
-  name: string
-  status: UserStatus
-}
-
-interface CreateChatRequest {
-  participantId: number
-  type: 'INDIVIDUAL'
-}
-
 export const chatService = {
   // Find or create a one-to-one chat with another user
   findOrCreateOneToOneChat: async (userId: number): Promise<number> => {
@@ -67,11 +50,6 @@ export const chatService = {
       console.error('[chatService] failed:', error);
       throw error
     }
-  },
-
-  getUsers: async (): Promise<User[]> => {
-    const response = await axiosInstance.get<{ data: User[] }>('/users')
-    return response.data.data
   },
 
   deleteChat: async (chatId: number): Promise<void> => {

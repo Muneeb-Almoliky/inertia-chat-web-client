@@ -25,9 +25,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import twemoji from 'twemoji'
-import { chatService, User, UserStatus } from '@/services/chatService'
+import { UserStatus } from '@/types/user'
 import { formatMessageDate } from '@/utils/date'
 import { parseEmoji } from '@/utils/emoji'
+import { userService } from '@/services/userService'
+import { UserProfile } from '@/types/user'
 
 interface ConversationListProps {
   search: string
@@ -40,13 +42,13 @@ export function ConversationList({ search }: ConversationListProps) {
   const { chats, deleteChat } = useChat()
   const { auth } = useAuth()
   const [chatToDelete, setChatToDelete] = useState<number | null>(null)
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const data = await chatService.getUsers()
+        const data = await userService.getUsers()
         setUsers(data)
       } catch (error) {
         console.error("Failed to fetch users:", error)

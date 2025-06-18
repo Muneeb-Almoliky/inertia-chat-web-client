@@ -5,9 +5,11 @@ import { ChatInput } from "@/components/chat/ChatInput"
 import { AuthGuard } from "@/components/auth/AuthGuard"
 import { useParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
-import { chatService, User, UserStatus } from "@/services/chatService";
+import { chatService } from "@/services/chatService";
 import { useAuth } from "@/hooks";
 import { cn } from "@/lib/utils";
+import { userService } from "@/services/userService";
+import { UserProfile, UserStatus } from "@/types/user";
 
 interface ChatPageParams {
   conversationId: string;
@@ -18,7 +20,7 @@ function ChatPage() {
   const conversationId = params?.conversationId as ChatPageParams['conversationId'];
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const { auth } = useAuth();
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserProfile[]>([])
   const [otherUser, setOtherUser] = useState<{ name: string; status: string } | null>(null)
   
   useEffect(() => {
@@ -26,7 +28,7 @@ function ChatPage() {
     const fetchData = async () => {
       try {
         const [usersData, chatHistory] = await Promise.all([
-          chatService.getUsers(),
+          userService.getUsers(),
           chatService.getChatHistory(Number(conversationId))
         ]);
         if (!isMounted) return;

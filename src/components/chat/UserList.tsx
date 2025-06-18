@@ -6,22 +6,25 @@ import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { chatService, User, UserStatus } from "@/services/chatService"
+import { chatService } from "@/services/chatService"
+import { UserStatus } from '@/types/user'
+import { userService } from "@/services/userService"
+import { UserProfile } from "@/types/user"
 
 interface UserListProps {
   search: string
-  onSelectUser: (user: User) => void
+  onSelectUser: (user: UserProfile) => void
 }
 
 export function UserList({ search, onSelectUser }: UserListProps) {
   const router = useRouter()
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const data = await chatService.getUsers()
+        const data = await userService.getUsers()
         setUsers(data)
       } catch (error) {
         console.error("Failed to fetch users:", error)
@@ -33,7 +36,7 @@ export function UserList({ search, onSelectUser }: UserListProps) {
     fetchUsers()
   }, [])
 
-  const handleUserSelect = async (user: User) => {
+  const handleUserSelect = async (user: UserProfile) => {
     try {
       const chatId = await chatService.findOrCreateOneToOneChat(user.id)
       router.push(`/chat/${chatId}`)
