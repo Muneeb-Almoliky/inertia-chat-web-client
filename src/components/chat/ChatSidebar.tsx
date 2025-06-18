@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Plus, MoreVertical, LogOut } from 'lucide-react'
+import { Plus, MoreVertical, LogOut, Settings } from 'lucide-react'
 import { ConversationList } from './ConversationList'
 import { useAuthStore } from '@/lib/store/auth.store'
 import { useRouter } from 'next/navigation'
@@ -11,6 +11,13 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { NewChatSidebar } from './NewChatSidebar'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export function ChatSidebar() {
   const [userSearch, setUserSearch] = useState('')
@@ -27,6 +34,10 @@ export function ChatSidebar() {
     }
   }
 
+  const handleProfileSettings = () => {
+    router.push('/profile')
+  }
+
   return showNewChatSidebar ? (
     <NewChatSidebar
       onBack={() => setShowNewChatSidebar(false)}
@@ -39,27 +50,41 @@ export function ChatSidebar() {
       <div className="flex items-center px-4 py-3 border-b bg-gray-50">
         <h1 className="text-lg font-semibold text-gray-800">Inertia Chat</h1>
         <div className="flex-grow" />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowNewChatSidebar(true)}
-            className="hover:bg-gray-100 focus:ring-2 focus:ring-gray-300"
-            title="Start new chat"
-            aria-label="Start new chat"
-          >
-            <Plus className="h-6 w-6 text-gray-700" />
-          </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowNewChatSidebar(true)}
+          className="hover:bg-gray-100 focus:ring-2 focus:ring-gray-300"
+          title="Start new chat"
+          aria-label="Start new chat"
+        >
+          <Plus className="h-6 w-6 text-gray-700" />
+        </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover:bg-gray-100 focus:ring-2 focus:ring-gray-300"
-            title="More options"
-            aria-label="More options"
-          >
-            <MoreVertical className="h-6 w-6 text-gray-700" />
-          </Button>
-
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-gray-100 focus:ring-2 focus:ring-gray-300"
+              title="More options"
+              aria-label="More options"
+            >
+              <MoreVertical className="h-6 w-6 text-gray-700" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={handleProfileSettings}>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Profile Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} variant="destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Logout</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Search bar above conversations */}
@@ -77,29 +102,6 @@ export function ChatSidebar() {
       <ScrollArea className="flex-1 bg-white">
         <ConversationList search={userSearch} />
       </ScrollArea>
-
-      {/* Footer: User Profile + Logout */}
-      <div className="p-4 border-t bg-gray-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-              <span className="text-sm font-medium text-gray-600">
-                {username?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <span className="text-sm font-medium text-gray-700">{username}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            className="hover:bg-gray-100"
-            title="Logout"
-          >
-            <LogOut className="h-5 w-5 text-gray-600" />
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }
