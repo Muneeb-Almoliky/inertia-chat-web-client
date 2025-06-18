@@ -3,26 +3,22 @@
 import * as React from "react"
 import { Paperclip, Send, Smile, X, Mic, Square } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import Picker from '@emoji-mart/react'
-import data from '@emoji-mart/data'
+import EmojiPicker, { EmojiStyle, Theme, EmojiClickData } from 'emoji-picker-react'
 import { useChat } from "@/hooks/useChat"
-import { emojiUrl, EmojiRenderProps } from "@/utils/emoji"
+import { parseEmoji } from "@/utils/emoji"
 import { toast } from "sonner"
 import { formatFileSize, getFileType, getFileIcon, isVoiceMessage } from "@/utils/file"
 import { formatTime } from "@/utils/audio"
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from "@/constants/file"
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
+import * as Popover from '@radix-ui/react-popover'
+import twemoji from 'twemoji'
+import { cn } from "@/lib/utils"
 
 interface ChatInputProps {
   conversationId: string
@@ -33,10 +29,11 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
   const { sendMessage } = useChat(Number(conversationId))
   const [message, setMessage] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
-  const [attachments, setAttachments] = React.useState<File[]>([])
+  const inputRef = React.useRef<HTMLDivElement>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [attachments, setAttachments] = React.useState<File[]>([])
   const [imagePreviews, setImagePreviews] = React.useState<{ [key: string]: string }>({})
+  const [showEmojiPicker, setShowEmojiPicker] = React.useState(false)
   
   const [isRecording, setIsRecording] = React.useState(false)
   const [recordingTime, setRecordingTime] = React.useState(0)
@@ -68,12 +65,93 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     });
   }, [attachments]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+  const convertTextToEmojiImages = (text: string) => {
+    return twemoji.parse(text, {
+      folder: '72x72',
+      ext: '.png',
+      base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/',
+      className: 'emoji',
+      attributes: (icon, variant) => {
+        return {
+          alt: icon
+        }
+      }
+    });
+  };
+
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const content = e.currentTarget.innerHTML;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+
+    // Find text nodes that are not inside emoji images
+    const textNodes: Node[] = [];
+    const walker = document.createTreeWalker(
+      tempDiv,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: (node) => {
+          // Skip text nodes that are children of emoji images
+          if (node.parentElement?.classList.contains('emoji')) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
+    let node;
+    while (node = walker.nextNode()) {
+      textNodes.push(node);
     }
-  }
+
+    // Convert only text nodes to emojis
+    textNodes.forEach(node => {
+      if (node.textContent) {
+        const converted = convertTextToEmojiImages(node.textContent);
+        if (converted !== node.textContent) {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = converted;
+          node.parentNode?.replaceChild(wrapper.firstChild!, node);
+        }
+      }
+    });
+
+    e.currentTarget.innerHTML = tempDiv.innerHTML;
+    setMessage(tempDiv.innerHTML);
+
+    // Restore cursor position at the end
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(e.currentTarget);
+    range.collapse(false);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    const selection = window.getSelection();
+    const range = selection?.getRangeAt(0);
+    
+    if (range) {
+      range.deleteContents();
+      const convertedContent = convertTextToEmojiImages(text);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = convertedContent;
+      
+      const fragment = document.createDocumentFragment();
+      while (tempDiv.firstChild) {
+        fragment.appendChild(tempDiv.firstChild);
+      }
+      
+      range.insertNode(fragment);
+      range.collapse(false);
+      
+      setMessage(inputRef.current?.innerHTML || '');
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -102,12 +180,30 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     }
   }
 
+  const cleanMessageContent = (html: string) => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    
+    // Replace emoji images with their alt text (native emoji)
+    div.querySelectorAll('img.emoji').forEach(img => {
+      if (img instanceof HTMLImageElement) {
+        img.replaceWith(img.alt);
+      }
+    });
+    
+    return div.textContent || '';
+  };
+
   const handleSend = async () => {
     if ((!message.trim() && attachments.length === 0) || isSending) return
     try {
       setIsSending(true)
-      await sendMessage(message.trim(), attachments)
+      const cleanedMessage = cleanMessageContent(message);
+      await sendMessage(cleanedMessage.trim(), attachments)
       setMessage("")
+      if (inputRef.current) {
+        inputRef.current.innerHTML = ""
+      }
       setAttachments([])
       setImagePreviews({})
       onMessageSent?.()
@@ -123,20 +219,40 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     }
   }
 
-  const onEmojiSelect = (emoji: any) => {
-    const cursorPosition = textareaRef.current?.selectionStart || 0
-    const textBeforeCursor = message.substring(0, cursorPosition)
-    const textAfterCursor = message.substring(cursorPosition)
-    const newMessage = textBeforeCursor + emoji.native + textAfterCursor
-    setMessage(newMessage)
-    
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const newCursorPosition = cursorPosition + emoji.native.length
-        textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition)
-        textareaRef.current.focus()
+  const onEmojiSelect = (emojiData: EmojiClickData) => {
+    if (inputRef.current) {
+      const img = document.createElement('img')
+      img.src = emojiData.imageUrl
+      img.alt = emojiData.emoji  // Just use the emoji character
+      img.className = 'emoji'
+      img.draggable = false
+      img.style.width = '1.25em'
+      img.style.height = '1.25em'
+      img.style.verticalAlign = '-0.25em'
+      img.style.margin = '0 0.05em 0 0.1em'
+
+      const selection = window.getSelection()
+      const range = selection?.getRangeAt(0)
+      
+      if (range) {
+        range.deleteContents()
+        range.insertNode(img)
+        range.collapse(false)
+        
+        // Update message content
+        setMessage(inputRef.current.innerHTML)
+        
+        // Move cursor after emoji
+        const newRange = document.createRange()
+        newRange.setStartAfter(img)
+        newRange.collapse(true)
+        selection?.removeAllRanges()
+        selection?.addRange(newRange)
+        
+        // Focus back on input
+        inputRef.current.focus()
       }
-    }, 0)
+    }
   }
 
   const startRecording = async () => {
@@ -182,6 +298,13 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
       }
     }
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -258,41 +381,64 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
             </TooltipTrigger>
             <TooltipContent>Attach file</TooltipContent>
           </Tooltip>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button size="icon" variant="ghost">
+          
+          <Popover.Root open={showEmojiPicker}>
+            <Popover.Trigger asChild>
+              <Button 
+                size="icon" 
+                variant="ghost"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              >
                 <Smile className="h-5 w-5" />
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Picker
-                data={data}
-                onEmojiSelect={onEmojiSelect}
-                previewPosition="none"
-                emojiSize={24}
-                theme="light"
-                icons="twemoji"
-                emojiButtonSize={32}
-                renderEmoji={({ emoji, size }: EmojiRenderProps) => (
-                  <img
-                    src={emojiUrl(emoji.native)}
-                    width={size}
-                    height={size}
-                    alt={emoji.native}
-                  />
-                )}
-              />
-            </PopoverContent>
-          </Popover>
-          <Textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content 
+                className="z-50 bg-background border rounded-lg shadow-md"
+                side="top"
+                align="start"
+                sideOffset={5}
+              >
+                <EmojiPicker
+                  onEmojiClick={onEmojiSelect}
+                  emojiStyle={EmojiStyle.TWITTER}
+                  theme={Theme.LIGHT}
+                  width={300}
+                  height={400}
+                  lazyLoadEmojis={true}
+                />
+                <Popover.Arrow className="fill-background" />
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+
+          <div
+            ref={inputRef}
+            className={cn(
+              "flex-1 min-h-16 max-h-48 overflow-y-auto overflow-x-hidden",
+              "rounded-md border border-input bg-transparent dark:bg-input/30",
+              "px-3 py-2 text-base md:text-sm",
+              "placeholder:text-muted-foreground",
+              "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              "transition-[color,box-shadow]",
+              "[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-muted-foreground",
+              "[&:empty]:before:pointer-events-none",
+              "[&_img.emoji]:inline-block [&_img.emoji]:w-[1.375em] [&_img.emoji]:h-[1.375em]",
+              "[&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.05em]",
+              "[&::-webkit-scrollbar]:w-2",
+              "[&::-webkit-scrollbar-track]:bg-transparent",
+              "[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20",
+              "[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/30"
+            )}
+            contentEditable
+            onInput={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder={isRecording ? `Recording... ${formatTime(recordingTime)}` : "Type a message..."}
-            className="min-h-[50px] max-h-[200px] flex-1"
-            rows={1}
-            disabled={isSending || isRecording}
+            onPaste={handlePaste}
+            data-placeholder={isRecording ? `Recording... ${formatTime(recordingTime)}` : "Type a message..."}
+            role="textbox"
+            aria-multiline="true"
+            aria-label="Message input"
           />
         </div>
         {isRecording ? (

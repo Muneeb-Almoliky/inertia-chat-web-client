@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
 import { useScrollActivity } from "@/hooks"
 import { isSameDay } from "@/utils/date"
+import { parseEmoji } from "@/utils/emoji";
 
 interface ChatMessagesProps {
   conversationId: string
@@ -247,6 +248,14 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
     );
   };
 
+  const isSingleEmoji = (content: string) => {
+    const trimmed = content.trim();
+    const div = document.createElement('div');
+    div.innerHTML = parseEmoji(trimmed);
+    const emojiElements = div.getElementsByClassName('emoji');
+    return emojiElements.length === 1 && div.textContent?.trim() === '';
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -281,6 +290,7 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
           const isCurrentUser = message.senderId === auth.userId
           const hasAttachments = Array.isArray(message.attachments) && message.attachments.length > 0;
           const hasContent = message?.content && message?.content.trim().length > 0;
+          const isSingleEmojiMessage = hasContent && isSingleEmoji(message.content);
 
           const showDateHeader = i === 0 || !isSameDay(
             new Date(message.createdAt || ''),
@@ -357,10 +367,22 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                     <div
                       className={cn(
                         "rounded-lg p-2 max-w-md",
-                        isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                        isSingleEmojiMessage 
+                          ? "!p-0"
+                          : isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
                       )}
                     >
-                      {message.content}
+                      <span
+                        className={cn(
+                          "[&_img.emoji]:inline-block [&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.1em]",
+                          isSingleEmojiMessage 
+                            ? "[&_img.emoji]:size-[6.5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
+                            : "[&_img.emoji]:size-[1.3em]"
+                        )}
+                        dangerouslySetInnerHTML={{
+                          __html: parseEmoji(message.content),
+                        }}
+                      />
                     </div>
                   )}
                 </div>

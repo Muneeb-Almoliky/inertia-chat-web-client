@@ -27,6 +27,7 @@ import {
 import twemoji from 'twemoji'
 import { chatService, User, UserStatus } from '@/services/chatService'
 import { formatMessageDate } from '@/utils/date'
+import { parseEmoji } from '@/utils/emoji'
 
 interface ConversationListProps {
   search: string
@@ -150,20 +151,12 @@ export function ConversationList({ search }: ConversationListProps) {
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground truncate max-w-[180px]">
                     {lastMsg?.content ? (
-                      <span className="inline-flex items-center">
-                        <span
-                          className="inline"
-                          dangerouslySetInnerHTML={{
-                            __html: twemoji.parse(lastMsg.content, {
-                              folder: 'svg',
-                              ext: '.svg',
-                              className: 'twemoji',
-                              callback: (icon) =>
-                                `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/${icon}.svg`,
-                            }),
-                          }}
-                        />
-                      </span>
+                      <span
+                        className="inline-flex items-center [&_img.emoji]:inline-block [&_img.emoji]:size-[1.15em] [&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.075em]"
+                        dangerouslySetInnerHTML={{
+                          __html: parseEmoji(lastMsg.content),
+                        }}
+                      />
                     ) : (
                       "No messages yet"
                     )}

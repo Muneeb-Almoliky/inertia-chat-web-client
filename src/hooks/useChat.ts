@@ -79,7 +79,6 @@ export function useChat(chatId?: number) {
       websocketService.joinChat(chatId, auth.username);
       
       websocketService.subscribeToChat(chatId, (msg) => {
-        console.log('→ [useChat] got incoming message', msg);
         addMessage(chatId, msg);
       });
     };
@@ -91,7 +90,6 @@ export function useChat(chatId?: number) {
     if (!chatId) return;
     try {
       const res = await chatService.sendMessageWithAttachments(chatId, content, attachments);
-      console.log('[sendMessage] REST response:', res);
       return res;
     } catch (err: any) {
       console.error('[sendMessage] Error sending message:', err);
