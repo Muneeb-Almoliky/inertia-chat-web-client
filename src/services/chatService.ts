@@ -47,7 +47,7 @@ export const chatService = {
 
     try {
       console.log('[chatService] calling axiosInstance.get')
-      const response = await axiosInstance.get('/chats/all')
+      const response = await axiosInstance.get('/chats')
       console.log('[chatService] response:', response)
       const data = response.data as { data: any[] }
       const rawChats = data.data
@@ -70,8 +70,8 @@ export const chatService = {
   },
 
   getUsers: async (): Promise<User[]> => {
-    const response = await axiosInstance.get<User[]>('/users')
-    return response.data
+    const response = await axiosInstance.get<{ data: User[] }>('/users')
+    return response.data.data
   },
 
   deleteChat: async (chatId: number): Promise<void> => {
