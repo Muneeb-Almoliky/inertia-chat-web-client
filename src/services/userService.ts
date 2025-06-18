@@ -4,7 +4,10 @@ import { UserProfile, UpdateStatusData, DeleteProfileData } from "@/types/user"
 export interface UpdateProfileData {
   name?: string
   username?: string
-  profilePicture?: File
+}
+
+export interface UpdateAvatarData {
+  profilePicture: File
 }
 
 export const userService = {
@@ -22,23 +25,28 @@ export const userService = {
 
   updateProfile: async (data: UpdateProfileData): Promise<void> => {
     try {
-      if (data.profilePicture) {
-        const formData = new FormData()
-        if (data.name) formData.append('name', data.name)
-        if (data.username) formData.append('username', data.username)
-        formData.append('avatar', data.profilePicture)
-        
-        await axiosInstance.put('/users/me', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        })
-      } else {
-        await axiosInstance.put('/users/me', data)
-      }
+      await axiosInstance.put('/users/me', data)
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message || 'Failed to update profile')
+      }
+      throw error
+    }
+  },
+
+  updateAvatar: async (data: UpdateAvatarData): Promise<void> => {
+    try {
+      const formData = new FormData()
+      formData.append('avatar', data.profilePicture)
+      
+      await axiosInstance.put('/users/me/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message || 'Failed to update avatar')
       }
       throw error
     }

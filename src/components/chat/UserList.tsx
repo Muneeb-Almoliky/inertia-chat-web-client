@@ -1,7 +1,6 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
@@ -10,6 +9,8 @@ import { chatService } from "@/services/chatService"
 import { UserStatus } from '@/types/user'
 import { userService } from "@/services/userService"
 import { UserProfile } from "@/types/user"
+import { getApiBaseUrl, resolveAvatar } from "@technway/rvnjs"
+import Avatar from "./Avatar"
 
 interface UserListProps {
   search: string
@@ -81,12 +82,10 @@ export function UserList({ search, onSelectUser }: UserListProps) {
           )}
         >
           <div className="relative">
-            <Avatar>
-              <AvatarImage src={`https://avatar.vercel.sh/${user.username}.png`} />
-              <AvatarFallback>
-                {user.name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <Avatar
+              path={user.profilePicture}
+              name={user.name}
+            />
             <span
               className={cn(
                 "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background",

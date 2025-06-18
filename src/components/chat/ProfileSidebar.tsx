@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input'
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/lib/store/auth.store'
 import { userService } from '@/services/userService'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import {
@@ -23,7 +22,7 @@ import { useRouter } from 'next/navigation'
 import type { UserProfile } from '@/types/user'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
-import { getApiBaseUrl } from '@/utils/api'
+import Avatar from './Avatar'
 
 interface ProfileSidebarProps {
   onBack: () => void
@@ -68,8 +67,8 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Photo size should be less than 5MB')
+      if (file.size > 1 * 1024 * 1024) {
+        toast.error('Photo size should be less than 1MB')
         return
       }
       setSelectedPhoto(file)
@@ -85,18 +84,21 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
     e.preventDefault()
     setSaving(true)
     try {
-      if (selectedPhoto) {
-        await userService.updateProfile({
-          name: formData.name,
-          username: formData.username,
-          profilePicture: selectedPhoto
-        })
-      } else {
+      // Update profile data if changed
+      if (profile && (formData.name !== profile.name || formData.username !== profile.username)) {
         await userService.updateProfile({
           name: formData.name,
           username: formData.username
         })
       }
+
+      // Update avatar if selected
+      if (selectedPhoto) {
+        await userService.updateAvatar({
+          profilePicture: selectedPhoto
+        })
+      }
+
       const updatedProfile = await userService.getProfile()
       setProfile(updatedProfile)
       setIsEditing(false)
@@ -129,11 +131,11 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
     )
   }
 
-  const showSaveButton = selectedPhoto || (isEditing && (
+  const showSaveButton = selectedPhoto || (isEditing && profile && (
     formData.name !== profile.name || 
     formData.username !== profile.username
   ))
-
+  
   return (
     <div className="flex flex-col w-80 bg-white border-r shadow-lg">
       {/* Header */}
@@ -154,17 +156,11 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
         {/* Avatar Section */}
         <Card className="pt-8 pb-6 px-4 flex flex-col items-center gap-4 relative border-none shadow-none bg-gray-50/50">
           <div className="relative">
-            <Avatar className="h-24 w-24 ring-4 ring-background">
-              <AvatarImage
-                src={
-                  photoPreview
-                    || (profile.profilePicture
-                        ? getApiBaseUrl() + profile.profilePicture
-                        : `https://avatar.vercel.sh/${profile.username}.png`)
-                }
-              />
-              <AvatarFallback>{profile.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <Avatar
+              className="h-24 w-24 ring-4 ring-background"
+              path={profile.profilePicture}
+              name={profile.name}
+            />
             <input
               type="file"
               ref={fileInputRef}

@@ -1,10 +1,8 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { useChat } from '@/hooks/useChat'
-import { formatDistanceToNow } from 'date-fns'
 import { useAuth } from '@/hooks'
 import { useMemo, useState, useEffect } from 'react'
 import { MoreVertical, Trash2 } from 'lucide-react'
@@ -24,12 +22,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import twemoji from 'twemoji'
 import { UserStatus } from '@/types/user'
 import { formatMessageDate } from '@/utils/date'
 import { parseEmoji } from '@/utils/emoji'
 import { userService } from '@/services/userService'
 import { UserProfile } from '@/types/user'
+import Avatar from './Avatar'
 
 interface ConversationListProps {
   search: string
@@ -119,12 +117,10 @@ export function ConversationList({ search }: ConversationListProps) {
               className="flex items-center gap-3 flex-1"
             >
               <div className="relative">
-                <Avatar>
-                  <AvatarImage src={`https://avatar.vercel.sh/${other.name}.png`} />
-                  <AvatarFallback>
-                    {other.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <Avatar
+                  path={other.profilePicture}
+                  name={other.name}
+                />
                 <span
                   className={cn(
                     "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background",
