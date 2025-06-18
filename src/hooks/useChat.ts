@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { chatService } from '@/services/chatService';
 import { websocketService } from '@/services/websocketService';
@@ -14,10 +14,10 @@ export function useChat(chatId?: number) {
     setChats,
     setMessages,
     addMessage,
-    setLoading,
+    setLoadingState,
     setActiveChat,
     chats,
-    loading,
+    loadingStates,
     removeChat
   } = useChatStore();
   
@@ -29,6 +29,19 @@ export function useChat(chatId?: number) {
     const chat = chats.find(c => c.id === chatId);
     return chat ? chat.type : undefined;
   }, [chatId, chats]);
+
+  const refetch = useCallback(async () => {
+    if (!chatId) return;
+    setLoadingState('initialLoad', true);
+    try {
+      const response = await chatService.getChatHistory(chatId);
+      setMessages(chatId, response.data);
+    } catch (error) {
+      console.error('Failed to refetch messages:', error);
+    } finally {
+      setLoadingState('initialLoad', false);
+    }
+  }, [chatId, setLoadingState, setMessages]);
 
   // Load user chats once
   useEffect(() => {
@@ -66,13 +79,13 @@ export function useChat(chatId?: number) {
   useEffect(() => {
     if (!auth.isAuthenticated || !chatId) return;
 
-    setLoading(true);
+    setLoadingState('initialLoad', true);
 
     // Load history
     chatService.getChatHistory(chatId)
       .then(resp => setMessages(chatId, resp.data))
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => setLoadingState('initialLoad', false));
 
     // Setup live updates
     const onConnect = () => {
@@ -84,7 +97,7 @@ export function useChat(chatId?: number) {
     };
 
     websocketService.onConnect(onConnect);
-  }, [chatId, auth.isAuthenticated, auth.username, setMessages, addMessage, setLoading]);
+  }, [chatId, auth.isAuthenticated, auth.username, setMessages, addMessage, setLoadingState]);
 
   const sendMessage = async (content: string, attachments?: File[]) => {
     if (!chatId) return;
@@ -111,5 +124,5 @@ export function useChat(chatId?: number) {
     }
   };
 
-  return { chats, messages, loading, chatType, sendMessage, deleteChat };
+  return { chats, messages, loading: loadingStates.initialLoad, chatType, sendMessage, deleteChat, refetch };
 }

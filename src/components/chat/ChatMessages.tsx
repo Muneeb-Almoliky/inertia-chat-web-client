@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useChat } from "@/hooks/useChat"
 import { format } from "date-fns"
-import { Loader2, FileText, Image, File, Video, Music, Download, Mic } from "lucide-react"
+import { Loader2, FileText, Image, File, Video, Music, Download, Mic, MoreVertical, Pencil, Trash2 } from "lucide-react"
 import { useAuth } from "@/hooks"
 import { useEffect, useRef, useState } from "react";
 import { Attachment, AttachmentType } from "@/types/chat"
@@ -15,6 +15,26 @@ import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
 import { useScrollActivity } from "@/hooks"
 import { isSameDay } from "@/utils/date"
 import { parseEmoji } from "@/utils/emoji";
+import { ChatInput } from "./ChatInput"
+import { messageService } from "@/services/messageService"
+import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useChatStore } from "@/lib/store/chat.store"
 
 interface ChatMessagesProps {
   conversationId: string
@@ -69,10 +89,13 @@ const getImageFit = (count: number) => {
 export function ChatMessages({ conversationId }: ChatMessagesProps) {
   const { auth } = useAuth()
   const { messages, loading, chatType } = useChat(Number(conversationId))
+  const { updateMessage: updateStoreMessage, deleteMessage: deleteStoreMessage } = useChatStore()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(true);
+  const [editingMessage, setEditingMessage] = useState<{ id: number; content: string } | null>(null);
+  const [messageToDelete, setMessageToDelete] = useState<number | null>(null);
 
   useScrollActivity(containerRef, () => {
     setIsScrolling(false);
@@ -256,7 +279,38 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
     return emojiElements.length === 1 && div.textContent?.trim() === '';
   };
 
-  if (loading) {
+  const handleEditMessage = (messageId: number, content: string) => {
+    setEditingMessage({ id: messageId, content });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+  };
+
+  const handleUpdateMessage = async (messageId: number, content: string) => {
+    try {
+      await messageService.updateMessage(messageId, content);
+      updateStoreMessage(Number(conversationId), messageId, content);
+      setEditingMessage(null);
+      toast.success("Message updated successfully");
+    } catch (error) {
+      toast.error("Failed to update message");
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: number) => {
+    try {
+      await messageService.deleteMessage(messageId);
+      deleteStoreMessage(Number(conversationId), messageId);
+      toast.success("Message deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete message");
+    } finally {
+      setMessageToDelete(null);
+    }
+  };
+
+  if (loading && !editingMessage && messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -272,13 +326,20 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
     )
   }
 
+  // Sort messages by date to ensure proper date header grouping
+  const sortedMessages = [...messages].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateA - dateB;
+  });
+
   return (
     <div 
       ref={containerRef} 
       className="flex flex-col gap-4 p-4 relative chat-messages-container overflow-y-auto h-full"
       onScroll={handleScroll}
     >
-      {messages
+      {sortedMessages
         .filter(message => {
           const content = message.content?.toLowerCase() || "";
           return message.type === "CHAT" || (
@@ -291,10 +352,16 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
           const hasAttachments = Array.isArray(message.attachments) && message.attachments.length > 0;
           const hasContent = message?.content && message?.content.trim().length > 0;
           const isSingleEmojiMessage = hasContent && isSingleEmoji(message.content);
+          const isEditing = editingMessage?.id === message.id;
 
-          const showDateHeader = i === 0 || !isSameDay(
-            new Date(message.createdAt || ''),
-            new Date(filteredMessages[i - 1].createdAt || '')
+          // Only show date header for the first message of each day
+          const showDateHeader = i === 0 || (
+            message.createdAt && 
+            filteredMessages[i - 1].createdAt &&
+            !isSameDay(
+              new Date(message.createdAt || ''),
+              new Date(filteredMessages[i - 1].createdAt || '')
+            )
           );
 
           const getDateHeader = (date: Date) => {
@@ -335,7 +402,10 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                   </span>
                 </div>
               )}
-              <div className={cn("flex gap-3", isCurrentUser && "flex-row-reverse")}>
+              <div className={cn(
+                "flex gap-3 group/message",
+                isCurrentUser && "flex-row-reverse"
+              )}>
                 {chatType === "GROUP" && (
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={`https://avatar.vercel.sh/${message.senderName}.png`} />
@@ -344,46 +414,87 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                     </AvatarFallback>
                   </Avatar>
                 )}
-                <div className={cn("flex flex-col gap-1", isCurrentUser && "items-end")}>
+                <div className={cn("flex flex-col gap-1 relative", isCurrentUser && "items-end")}>
                   <div className="flex items-center gap-2">
                     {chatType === "GROUP" && <span className="text-sm font-medium">{message.senderName}</span>}
-                    {message.createdAt && (
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(message.createdAt), "h:mm a")}
-                      </span>
-                    )}
-                  </div>
-                  {hasAttachments && (
-                    <div
-                      className={cn(
-                        "rounded-lg p-2 max-w-md",
-                        isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                    <div className="flex items-center gap-1">
+                      {message.createdAt && (
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(message.createdAt), "h:mm a")}
+                        </span>
                       )}
-                    >
-                      {renderAttachments(message.attachments!, isCurrentUser)}
+                      {isCurrentUser && message.id && !isEditing && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover/message:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align={isCurrentUser ? "end" : "start"}>
+                            <DropdownMenuItem
+                              onClick={() => handleEditMessage(message.id!, message.content)}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => setMessageToDelete(message.id!)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
-                  )}
-                  {hasContent && (
-                    <div
-                      className={cn(
-                        "rounded-lg p-2 max-w-md",
-                        isSingleEmojiMessage 
-                          ? "!p-0"
-                          : isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "[&_img.emoji]:inline-block [&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.1em]",
-                          isSingleEmojiMessage 
-                            ? "[&_img.emoji]:size-[6.5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
-                            : "[&_img.emoji]:size-[1.3em]"
-                        )}
-                        dangerouslySetInnerHTML={{
-                          __html: parseEmoji(message.content),
-                        }}
+                  </div>
+                  {isEditing ? (
+                    <div className="min-w-[200px]">
+                      <ChatInput
+                        conversationId={conversationId}
+                        onMessageSent={() => handleUpdateMessage(message.id!, message.content)}
                       />
                     </div>
+                  ) : (
+                    <>
+                      {hasAttachments && (
+                        <div
+                          className={cn(
+                            "rounded-lg p-2 max-w-md",
+                            isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                          )}
+                        >
+                          {renderAttachments(message.attachments!, isCurrentUser)}
+                        </div>
+                      )}
+                      {hasContent && (
+                        <div
+                          className={cn(
+                            "rounded-lg p-2 max-w-md",
+                            isSingleEmojiMessage 
+                              ? "!p-0"
+                              : isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "[&_img.emoji]:inline-block [&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.1em]",
+                              isSingleEmojiMessage 
+                                ? "[&_img.emoji]:size-[6.5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
+                                : "[&_img.emoji]:size-[1.3em]"
+                            )}
+                            dangerouslySetInnerHTML={{
+                              __html: parseEmoji(message.content),
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -391,6 +502,25 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
           )
         })}
       <div ref={messagesEndRef} />
+      <AlertDialog open={messageToDelete !== null} onOpenChange={() => setMessageToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Message</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this message? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => messageToDelete && handleDeleteMessage(messageToDelete)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
