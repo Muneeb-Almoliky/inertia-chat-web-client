@@ -119,7 +119,7 @@ export function VoiceMessagePlayer({ url, duration = 0, isCurrentUser = false, o
           />
         </div>
         <div className={cn(
-          "text-[10px] sm:text-xs md:text-sm mt-0.5 sm:mt-1",
+          "text-xs sm:text-xs md:text-sm mt-0.5 sm:mt-1",
           isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground"
         )}>
           {currentDuration > 0 ? `${formatTime(currentTime)} / ${formatTime(currentDuration)}` : 'Loading...'}

@@ -103,7 +103,7 @@ function ChatPage() {
   return (
     <>
       {otherUser && (
-        <div className="border-b bg-gray-50 flex items-center justify-between h-16 sm:h-[70px] px-4 sm:px-6 md:px-10">
+        <div className="border-b bg-gray-50 flex items-center justify-between h-16 sm:h-[70px] pr-4 pl-14 sm:px-6 md:px-10 sm:ml-10">
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative flex-shrink-0">
               <Avatar

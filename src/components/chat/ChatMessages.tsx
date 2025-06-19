@@ -398,7 +398,7 @@ const {
           if (message.type !== "CHAT") {
             return (
               <div key={`${message.id ?? 'msg'}-${i}`} className="flex justify-center">
-                <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground bg-muted px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 rounded-full">
+                <span className="text-xs sm:text-xs md:text-sm text-muted-foreground bg-muted px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 rounded-full">
                   {message.content}
                 </span>
               </div>
@@ -414,7 +414,7 @@ const {
                     isScrolling ? "sticky top-2 z-10" : "relative"
                   )}
                 >
-                  <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground bg-muted px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 rounded-full">
+                  <span className="text-xs sm:text-xs md:text-sm text-muted-foreground bg-muted px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 rounded-full">
                     {getDateHeader(new Date(message.createdAt))}
                   </span>
                 </div>
@@ -438,13 +438,13 @@ const {
                 )}>
                   <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
                     {chatType === "GROUP" && (
-                      <span className="text-[10px] sm:text-xs md:text-sm font-medium">
+                      <span className="text-xs sm:text-xs md:text-sm font-medium">
                         {message.senderName}
                       </span>
                     )}
                     <div className="flex items-center gap-0.5 sm:gap-1">
                       {message.createdAt && (
-                        <span className="text-[9px] sm:text-[10px] md:text-xs text-muted-foreground">
+                        <span className="text-xs sm:text-[10px] md:text-xs text-muted-foreground">
                           {format(new Date(message.createdAt), "h:mm a")}
                         </span>
                       )}
@@ -462,7 +462,7 @@ const {
                           <DropdownMenuContent align={isCurrentUser ? "end" : "start"} className="min-w-[100px]">
                             <DropdownMenuItem
                               onClick={() => handleEditMessage(message.id!, message.content)}
-                              className="text-[10px] sm:text-xs md:text-sm"
+                              className="text-xs sm:text-xs md:text-sm"
                             >
                               <Pencil className="mr-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                               Edit
@@ -470,7 +470,7 @@ const {
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => setMessageToDelete(message.id!)}
-                              className="text-[10px] sm:text-xs md:text-sm"
+                              className="text-xs sm:text-xs md:text-sm"
                             >
                               <Trash2 className="mr-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                               Delete
@@ -494,7 +494,7 @@ const {
                   {hasContent && (
                     <div
                       className={cn(
-                        "rounded-lg p-1.5 sm:p-2 md:p-2.5 text-xs sm:text-sm md:text-base",
+                        "rounded-lg p-1.5 sm:p-2 md:p-2.5 text-sm sm:text-sm md:text-base",
                         "break-all whitespace-pre-wrap overflow-hidden",
                         isSingleEmojiMessage 
                           ? "!p-0"
@@ -523,15 +523,15 @@ const {
       <AlertDialog open={messageToDelete !== null} onOpenChange={() => setMessageToDelete(null)}>
         <AlertDialogContent className="max-w-[280px] sm:max-w-[350px] md:max-w-[425px] p-3 sm:p-4 md:p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-sm sm:text-base md:text-lg">Delete Message</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs sm:text-sm">
+            <AlertDialogTitle className="text-base sm:text-base md:text-lg">Delete Message</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm sm:text-sm">
               Are you sure you want to delete this message? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="text-[10px] sm:text-xs md:text-sm h-7 sm:h-8 md:h-9">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="text-xs sm:text-xs md:text-sm h-7 sm:h-8 md:h-9">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-[10px] sm:text-xs md:text-sm h-7 sm:h-8 md:h-9"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs sm:text-xs md:text-sm h-7 sm:h-8 md:h-9"
               onClick={() => messageToDelete && handleDeleteMessage(messageToDelete)}
             >
               Delete
