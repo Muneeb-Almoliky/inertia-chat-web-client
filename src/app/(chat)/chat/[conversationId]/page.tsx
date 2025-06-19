@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { formatLastSeen } from "@/utils/date";
 
 interface ChatPageParams {
   conversationId: string;
@@ -129,10 +130,14 @@ function ChatPage() {
                 {otherUser.name}
               </h2>
               <span className={cn(
-                "text-xs sm:text-sm text-gray-500",
-                statusConfig[otherUser.status].textColor
+                "text-xs sm:text-sm",
+                otherUser.status === UserStatus.ONLINE 
+                  ? statusConfig[otherUser.status].textColor
+                  : "text-gray-500"
               )}>
-                {otherUser.status.toLowerCase()}
+                {otherUser.status === UserStatus.ONLINE 
+                  ? "online"
+                  : formatLastSeen(otherUser.lastSeen)}
               </span>
             </div>
           </div>
