@@ -3,18 +3,29 @@
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, MoreVertical } from "lucide-react"
 import { toast } from "sonner"
 import { chatService } from "@/services/chatService"
 import { UserStatus } from '@/types/user'
 import { userService } from "@/services/userService"
 import { UserProfile } from "@/types/user"
-import { getApiBaseUrl, resolveAvatar } from "@technway/rvnjs"
 import Avatar from "./Avatar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface UserListProps {
   search: string
   onSelectUser: (user: UserProfile) => void
+}
+
+const statusConfig = {
+  [UserStatus.ONLINE]: { label: 'Online', color: 'bg-green-500' },
+  [UserStatus.AWAY]: { label: 'Away', color: 'bg-yellow-500' },
+  [UserStatus.OFFLINE]: { label: 'Offline', color: 'bg-gray-400' },
 }
 
 export function UserList({ search, onSelectUser }: UserListProps) {
@@ -77,35 +88,51 @@ export function UserList({ search, onSelectUser }: UserListProps) {
           key={user.id}
           onClick={() => handleUserSelect(user)}
           className={cn(
-            "flex items-center gap-3 p-4 hover:bg-accent transition-colors",
-            "border-b last:border-b-0"
+            "flex items-center gap-3 px-4 py-3 transition-all duration-200 group relative",
+            "border-b last:border-b-0 border-gray-300",
+            "hover:bg-gray-100"
           )}
         >
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <Avatar
               path={user.profilePicture}
               name={user.name}
             />
-            <span
-              className={cn(
-                "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background",
-                user.status === UserStatus.ONLINE ? "bg-green-500" : "bg-gray-400"
-              )}
-            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className={cn(
+                      "absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full",
+                      "border-[1.5px] border-white shadow-sm",
+                      statusConfig[user.status].color
+                    )}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="right" align="center" className="text-xs">
+                  {statusConfig[user.status].label}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-          <div className="flex-1 text-left">
-            <div className="flex items-center justify-between">
-              <p className="font-medium">{user.name}</p>
+
+          <div className="flex-1 text-left min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-0.5">
+              <p className="font-medium truncate text-gray-900">{user.name}</p>
               <span className={cn(
-                "text-xs",
-                user.status === UserStatus.ONLINE ? "text-green-500" : "text-gray-400"
+                "text-[11px] text-gray-500 whitespace-nowrap",
+                user.status === UserStatus.ONLINE ? "text-green-500" : "text-gray-500"
               )}>
                 {user.status.toLowerCase()}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              @{user.username}
-            </p>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex-1 min-h-[20px] min-w-0">
+                <span className="text-[13px] text-gray-600 truncate block">
+                  @{user.username}
+                </span>
+              </div>
+            </div>
           </div>
         </button>
       ))}

@@ -353,7 +353,7 @@ const {
   return (
     <div 
       ref={containerRef} 
-      className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 relative chat-messages-container overflow-y-auto h-full"
+      className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 px-4 sm:px-6 md:px-10 relative chat-messages-container overflow-y-auto h-full"
       onScroll={handleScroll}
     >
       {sortedMessages

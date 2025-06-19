@@ -205,11 +205,11 @@ export function ConversationList({ search }: ConversationListProps) {
           <div
             key={chat.id}
             className={cn(
-              "flex items-center gap-3 p-4 transition-colors group",
-              "border-b last:border-b-0",
+              "flex items-center gap-3 px-4 py-3 transition-all duration-200 group relative",
+              "border-b last:border-b-0 border-gray-300",
               isActive
-                ? "bg-primary/10 dark:bg-primary/20"
-                : "hover:bg-accent"
+                ? "bg-gray-200/60 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-primary"
+                : "hover:bg-gray-100"
             )}
           >
             <button
@@ -226,7 +226,8 @@ export function ConversationList({ search }: ConversationListProps) {
                     <TooltipTrigger asChild>
                       <span
                         className={cn(
-                          "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background",
+                          "absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full",
+                          "border-[1.5px] border-white shadow-sm",
                           statusConfig[userStatus].color
                         )}
                       />
@@ -239,22 +240,56 @@ export function ConversationList({ search }: ConversationListProps) {
               </div>
 
               <div className="flex-1 text-left min-w-0">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <p className="font-medium truncate">{other.name}</p>
-                  {lastMsg?.createdAt && (
-                    <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                      {formatMessageDate(new Date(lastMsg.createdAt))}
-                    </span>
-                  )}
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <p className="font-medium truncate text-gray-900">{other.name}</p>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {lastMsg?.createdAt && (
+                      <span className="text-[11px] text-gray-500 whitespace-nowrap">
+                        {formatMessageDate(new Date(lastMsg.createdAt))}
+                      </span>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className={cn(
+                            "p-1.5 rounded-full flex-shrink-0",
+                            "hover:bg-gray-100 data-[state=open]:bg-gray-100",
+                            "transition-colors"
+                          )}
+                        >
+                          <MoreVertical className="h-4 w-4 text-gray-500" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-36">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                          onClick={e => {
+                            e.stopPropagation()
+                            setChatToDelete(chat.id)
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4 text-current" />
+                          <span>Delete chat</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="flex-1 min-h-[20px] min-w-0">
                     {lastMsg?.content?.trim() ? (
                       <div className="flex items-center gap-1 min-w-0 flex-1">
-                        <div className="max-w-[140px] sm:max-w-[160px] min-w-0 flex-1">
+                        {(lastMsg?.attachments?.length ?? 0) > 0 && (
+                          <span className="flex-shrink-0 text-gray-500">
+                            {getAttachmentIcon(
+                              lastMsg.attachments?.[0]?.type ?? AttachmentType.DOCUMENT
+                            )}
+                          </span>
+                        )}
+                        <div className="max-w-[230px] min-w-0 flex-1">
                           <span
-                            className="text-sm text-muted-foreground block truncate
+                            className="text-[13px] text-gray-600 block truncate
                             [&_img.emoji]:inline-block [&_img.emoji]:size-[1.15em] [&_img.emoji]:align-[-0.3em]
                             [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.075em]"
                             title={lastMsg.content}
@@ -263,22 +298,15 @@ export function ConversationList({ search }: ConversationListProps) {
                             }}
                           />
                         </div>
-                        {(lastMsg?.attachments?.length ?? 0) > 0 && (
-                          <span className="flex-shrink-0 text-muted-foreground">
-                            {getAttachmentIcon(
-                              lastMsg.attachments?.[0]?.type ?? AttachmentType.DOCUMENT
-                            )}
-                          </span>
-                        )}
                       </div>
                     ) : lastMsg?.attachments?.length ? (
-                      <div className="max-w-[140px] sm:max-w-[160px] min-w-0">
+                      <div className="max-w-[230px] min-w-0">
                         <div className="truncate">
                           {getAttachmentPreview(lastMsg)}
                         </div>
                       </div>
                     ) : (
-                      <span className="italic text-xs text-muted-foreground truncate block">
+                      <span className="italic text-xs text-gray-500/75 truncate block">
                         No messages yet
                       </span>
                     )}
@@ -286,34 +314,6 @@ export function ConversationList({ search }: ConversationListProps) {
                 </div>
               </div>
             </button>
-
-            <div className="flex items-center">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={cn(
-                      "opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity p-2 rounded-full flex-shrink-0",
-                      isActive ? "opacity-100" : "",
-                      "hover:bg-accent/50 data-[state=open]:bg-accent"
-                    )}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[200px]">
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                    onClick={e => {
-                      e.stopPropagation()
-                      setChatToDelete(chat.id)
-                    }}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    <span>Delete chat</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
           </div>
         )
       })}

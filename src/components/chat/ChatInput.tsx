@@ -332,30 +332,35 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
   }
 
   return (
-    <div className="flex flex-col gap-1.5 sm:gap-2">
+    <div className="flex flex-col gap-2">
       {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-muted/50 rounded-lg">
+        <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-2xl">
           {attachments.map((file, idx) => (
             <div 
               key={idx} 
-              className="group relative flex items-center gap-1.5 sm:gap-2 bg-background px-1.5 sm:px-2 py-1 rounded-md border"
+              className={cn(
+                "group relative flex items-center gap-2",
+                "bg-white px-3 py-2 rounded-xl",
+                "border border-gray-200 shadow-sm",
+                "transition duration-200"
+              )}
             >
               {file.type.startsWith('image/') && imagePreviews[file.name] ? (
-                <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-2">
                   <img 
                     src={imagePreviews[file.name]} 
                     alt={file.name}
-                    className="h-7 w-7 sm:h-8 sm:w-8 object-cover rounded"
+                    className="h-8 w-8 object-cover rounded-lg"
                   />
                   <div className="flex flex-col">
-                    <span className="text-xs sm:text-sm break-all max-w-[100px] sm:max-w-[120px]">{file.name}</span>
-                    <span className="text-[10px] sm:text-xs text-muted-foreground">
+                    <span className="text-sm font-medium text-gray-700 break-all max-w-[120px]">{file.name}</span>
+                    <span className="text-xs text-gray-500">
                       {getFileType(file)} • {formatFileSize(file.size)}
                     </span>
                   </div>
                 </div>
               ) : isVoiceMessage(file) ? (
-                <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-2">
                   {getFileIcon(file)}
                   <VoiceMessagePlayer
                     url={audioUrl || ''}
@@ -363,11 +368,11 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
                   />
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-2">
                   {getFileIcon(file)}
                   <div className="flex flex-col">
-                    <span className="text-xs sm:text-sm break-all max-w-[100px] sm:max-w-[120px]">{file.name}</span>
-                    <span className="text-[10px] sm:text-xs text-muted-foreground">
+                    <span className="text-sm font-medium text-gray-700 break-all max-w-[120px]">{file.name}</span>
+                    <span className="text-xs text-gray-500">
                       {getFileType(file)} • {formatFileSize(file.size)}
                     </span>
                   </div>
@@ -378,10 +383,15 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="size-4 sm:size-4.5 p-0 hover:bg-destructive hover:text-white rounded-full cursor-pointer"
+                    className={cn(
+                      "size-5 p-0 ml-1",
+                      "hover:bg-gray-100 hover:text-gray-700",
+                      "rounded-full cursor-pointer",
+                      "transition duration-200"
+                    )}
                     onClick={() => removeAttachment(idx)}
                   >
-                    <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    <X className="h-3 w-3" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Remove attachment</TooltipContent>
@@ -390,89 +400,100 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
           ))}
         </div>
       )}
-      <div className="flex items-end gap-1.5 sm:gap-2">
-        <div className="flex-1 flex items-end gap-1.5 sm:gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="h-8 w-8 sm:h-9 sm:w-9" 
-                asChild
-              >
-                <label>
-                  <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    style={{ display: 'none' }}
-                    onChange={handleFileChange}
-                    disabled={isSending || isRecording}
-                    accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,image/tiff,image/svg+xml,image/gif,video/mp4,video/quicktime,audio/mpeg,audio/ogg,audio/wav,audio/aac,audio/x-m4a,audio/flac,audio/webm,audio/mp4,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/csv,application/rtf,application/xml,text/html,application/json"
-                  />
-                </label>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Attach file</TooltipContent>
-          </Tooltip>
-          
-          <Popover.Root open={showEmojiPicker}>
+      <div className="flex items-end gap-2">
+        <div className="flex-1 flex items-end gap-2">
+          <div className="flex items-center gap-1.5">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Popover.Trigger asChild>
-                  <Button 
-                    size="icon" 
-                    variant="ghost"
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="h-8 w-8 sm:h-9 sm:w-9"
-                  >
-                    <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </Button>
-                </Popover.Trigger>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className={cn(
+                    "h-10 w-10",
+                    "hover:bg-gray-100 hover:text-gray-700",
+                    "transition duration-200"
+                  )}
+                  asChild
+                >
+                  <label>
+                    <Paperclip className="h-5 w-5 text-gray-600" />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      style={{ display: 'none' }}
+                      onChange={handleFileChange}
+                      disabled={isSending || isRecording}
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,image/tiff,image/svg+xml,image/gif,video/mp4,video/quicktime,audio/mpeg,audio/ogg,audio/wav,audio/aac,audio/x-m4a,audio/flac,audio/webm,audio/mp4,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/csv,application/rtf,application/xml,text/html,application/json"
+                    />
+                  </label>
+                </Button>
               </TooltipTrigger>
-              <TooltipContent>Add emoji</TooltipContent>
+              <TooltipContent>Attach file</TooltipContent>
             </Tooltip>
-            <Popover.Portal>
-              <Popover.Content 
-                className="z-50 bg-background border rounded-lg shadow-md"
-                side="top"
-                align="start"
-                sideOffset={5}
-              >
-                <EmojiPicker
-                  onEmojiClick={onEmojiSelect}
-                  emojiStyle={EmojiStyle.TWITTER}
-                  theme={Theme.LIGHT}
-                  width={280}
-                  height={350}
-                  lazyLoadEmojis={true}
-                />
-                <Popover.Arrow className="fill-background" />
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
+            
+            <Popover.Root open={showEmojiPicker}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Popover.Trigger asChild>
+                    <Button 
+                      size="icon" 
+                      variant="ghost"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className={cn(
+                        "h-10 w-10",
+                        "hover:bg-gray-100 hover:text-gray-700",
+                        "transition duration-200"
+                      )}
+                    >
+                      <Smile className="h-5 w-5 text-gray-600" />
+                    </Button>
+                  </Popover.Trigger>
+                </TooltipTrigger>
+                <TooltipContent>Add emoji</TooltipContent>
+              </Tooltip>
+              <Popover.Portal>
+                <Popover.Content 
+                  className="z-50 bg-white border rounded-2xl shadow-lg"
+                  side="top"
+                  align="start"
+                  sideOffset={8}
+                >
+                  <EmojiPicker
+                    onEmojiClick={onEmojiSelect}
+                    emojiStyle={EmojiStyle.TWITTER}
+                    theme={Theme.LIGHT}
+                    width={280}
+                    height={350}
+                    lazyLoadEmojis={true}
+                  />
+                  <Popover.Arrow className="fill-white" />
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+          </div>
 
           <div
             ref={inputRef}
             className={cn(
-              "flex-1 min-h-[48px] sm:min-h-[52px] max-h-40 sm:max-h-52 overflow-y-auto overflow-x-hidden",
-              "rounded-md border border-input bg-transparent dark:bg-input/30",
-              "px-2.5 sm:px-3 py-2 sm:py-3 text-sm sm:text-base",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring",
+              "flex-1 min-h-[52px] max-h-52 overflow-y-auto overflow-x-hidden",
+              "rounded-2xl bg-white",
+              "px-4 py-3 text-[15px] leading-relaxed",
+              "placeholder:text-gray-500",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
               "disabled:cursor-not-allowed disabled:opacity-50",
-              "transition-[color,box-shadow]",
-              "[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-muted-foreground",
+              "transition-[color,box-shadow] duration-200",
+              "[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-500",
               "[&:empty]:before:pointer-events-none",
               "[&_img.emoji]:inline-block [&_img.emoji]:w-[1.25em] [&_img.emoji]:h-[1.25em]",
               "[&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.05em]",
               "[&::-webkit-scrollbar]:w-1.5",
               "[&::-webkit-scrollbar-track]:bg-transparent",
-              "[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20",
-              "[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/30",
+              "[&::-webkit-scrollbar-thumb]:bg-gray-300/80",
+              "[&::-webkit-scrollbar-thumb:hover]:bg-gray-300",
               "break-all whitespace-pre-wrap overflow-hidden",
-              isEditing ? "bg-primary/10 dark:bg-primary/20 border border-primary" : ""
+              "border border-gray-200",
+              isEditing ? "bg-primary/5 border-primary/20 ring-2 ring-primary/20" : ""
             )}
             contentEditable
             onInput={handleInput}
@@ -503,9 +524,13 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
                     setEditingMessage(null);
                   }}
                   disabled={isSending}
-                  className="h-8 w-8 sm:h-9 sm:w-9"
+                  className={cn(
+                    "h-10 w-10",
+                    "hover:bg-gray-100 hover:text-gray-700",
+                    "transition duration-200"
+                  )}
                 >
-                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <X className="h-5 w-5 text-gray-600" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Cancel edit</TooltipContent>
@@ -517,9 +542,14 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
                   size="icon"
                   onClick={handleSend}
                   disabled={isSending || (message.trim().length === 0 && attachments.length === 0)}
-                  className="h-8 w-8 sm:h-9 sm:w-9"
+                  className={cn(
+                    "h-10 w-10",
+                    "bg-primary/10 hover:bg-primary/20",
+                    "text-primary hover:text-primary",
+                    "transition duration-200"
+                  )}
                 >
-                  <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <Check className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Save changes</TooltipContent>
@@ -528,8 +558,8 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
         ) : (
           <>
             {isRecording ? (
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-xs sm:text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-600">
                   {formatTime(recordingTime)}
                 </span>
                 <Tooltip>
@@ -538,9 +568,14 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
                       size="icon"
                       variant="destructive"
                       onClick={stopRecording}
-                      className="animate-pulse h-8 w-8 sm:h-9 sm:w-9"
+                      className={cn(
+                        "animate-pulse h-10 w-10",
+                        "bg-red-100 hover:bg-red-200",
+                        "text-red-600 hover:text-red-700",
+                        "transition duration-200"
+                      )}
                     >
-                      <Square className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <Square className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Stop recording</TooltipContent>
@@ -554,9 +589,13 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
                     variant="ghost"
                     onClick={startRecording}
                     disabled={isSending}
-                    className="h-8 w-8 sm:h-9 sm:w-9"
+                    className={cn(
+                      "h-10 w-10",
+                      "hover:bg-gray-100 hover:text-gray-700",
+                      "transition duration-200"
+                    )}
                   >
-                    <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Mic className="h-5 w-5 text-gray-600" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Record voice message</TooltipContent>
@@ -569,9 +608,16 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
                   size="icon"
                   onClick={handleSend}
                   disabled={isSending || isRecording || (message.trim().length === 0 && attachments.length === 0)}
-                  className="h-8 w-8 sm:h-9 sm:w-9"
+                  className={cn(
+                    "h-10 w-10",
+                    "bg-primary hover:bg-primary/90",
+                    "text-white hover:text-white",
+                    "shadow-sm",
+                    "transition duration-200",
+                    "disabled:bg-gray-100 disabled:text-gray-400"
+                  )}
                 >
-                  <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <Send className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Send message</TooltipContent>

@@ -22,28 +22,30 @@ export function NewChatSidebar({ onBack, onStartChat }: NewChatSidebarProps) {
     <>
       <Backdrop show={isMobileOpen} onClose={onBack} />
       <div className={cn(
-        "fixed md:relative flex flex-col bg-white border-r shadow-lg h-full transition-all duration-300 z-50 w-[300px]",
+        "fixed md:relative flex flex-col bg-gray-50 border-r",
+        "h-full transition-all duration-300 ease-in-out z-50 w-[320px]",
+        "shadow-[0_0_15px_rgba(0,0,0,0.05)]",
         isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
         {/* Header */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b bg-gray-50/80">
+        <div className="flex items-center h-16 sm:h-[70px] px-4 border-b bg-gray-50">
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="hover:bg-gray-100 focus:ring-2 focus:ring-gray-300"
+            className="hover:bg-gray-100 focus:ring-2 focus:ring-primary/20"
             aria-label="Back"
           >
-            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700" />
+            <ArrowLeft className="h-5 w-5 text-gray-700" />
           </Button>
 
-          <h2 className="text-lg font-semibold truncate">New Chat</h2>
+          <h1 className="text-lg font-semibold text-gray-800 tracking-tight ml-2">New Chat</h1>
           <div className="flex-grow" />
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="ml-1 hover:bg-gray-100 focus:ring-2 focus:ring-gray-300 md:hidden"
+            className="hover:bg-gray-100 focus:ring-2 focus:ring-primary/20 md:hidden"
             title="Close sidebar"
             aria-label="Close sidebar"
           >
@@ -52,26 +54,32 @@ export function NewChatSidebar({ onBack, onStartChat }: NewChatSidebarProps) {
         </div>
 
         {/* Search */}
-        <div className="px-4 py-3 border-b bg-white">
+        <div className="relative px-4 py-3">
           <Input
             placeholder="Search users..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full text-sm sm:text-base"
-            aria-label="Search users"
+            className="w-full pl-4 h-9 bg-white border-0
+            text-sm placeholder:text-gray-500
+            rounded-2xl ring-1 ring-gray-200
+            focus-visible:ring-2 focus-visible:ring-primary/20
+            transition-all duration-200"
           />
         </div>
 
         {/* Actions */}
-        <div className="px-4 py-3 space-y-2 border-b bg-white">
-          <Button variant="outline" className="w-full justify-start gap-2 text-sm sm:text-base">
-            <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+        <div className="px-4 py-2">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start gap-2 text-sm h-9 bg-white hover:bg-gray-50"
+          >
+            <Users className="h-4 w-4" />
             New Group
           </Button>
         </div>
 
         {/* Search Results */}
-        <ScrollArea className="flex-1 px-2 py-2 bg-white">
+        <ScrollArea className="flex-1 bg-gray-50">
           <UserList
             search={search}
             onSelectUser={(user) => {

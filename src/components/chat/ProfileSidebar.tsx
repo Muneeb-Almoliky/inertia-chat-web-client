@@ -131,10 +131,14 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
       <>
         <Backdrop show={isMobileOpen} onClose={onBack} />
         <div className={cn(
-          "fixed md:relative flex flex-col bg-white border-r shadow-lg items-center justify-center h-screen transition-all duration-300 z-50 w-[300px]",
+          "fixed md:relative flex flex-col bg-gray-50 border-r",
+          "h-full transition-all duration-300 ease-in-out z-50 w-[320px]",
+          "shadow-[0_0_15px_rgba(0,0,0,0.05)]",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}>
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         </div>
       </>
     )
@@ -149,27 +153,29 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
     <>
       <Backdrop show={isMobileOpen} onClose={onBack} />
       <div className={cn(
-        "fixed md:relative flex flex-col bg-white border-r shadow-lg h-full transition-all duration-300 z-50 w-[300px]",
+        "fixed md:relative flex flex-col bg-gray-50 border-r",
+        "h-full transition-all duration-300 ease-in-out z-50 w-[320px]",
+        "shadow-[0_0_15px_rgba(0,0,0,0.05)]",
         isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
         {/* Header */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b bg-gray-50/80">
+        <div className="flex items-center h-16 sm:h-[70px] px-4 border-b bg-gray-50">
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="hover:bg-gray-100 focus:ring-2 focus:ring-gray-300"
+            className="hover:bg-gray-100 focus:ring-2 focus:ring-primary/20"
             aria-label="Back"
           >
-            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700" />
+            <ArrowLeft className="h-5 w-5 text-gray-700" />
           </Button>
-          <h2 className="text-lg font-semibold truncate">Profile Settings</h2>
+          <h1 className="text-lg font-semibold text-gray-800 tracking-tight ml-2">Profile Settings</h1>
           <div className="flex-grow" />
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="ml-1 hover:bg-gray-100 focus:ring-2 focus:ring-gray-300 md:hidden"
+            className="hover:bg-gray-100 focus:ring-2 focus:ring-primary/20 md:hidden"
             title="Close sidebar"
             aria-label="Close sidebar"
           >
@@ -177,118 +183,128 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
           </Button>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-6 sm:space-y-8 overflow-y-auto">
-          {/* Avatar Section */}
-          <Card className="pt-6 sm:pt-8 pb-4 sm:pb-6 px-4 flex flex-col items-center gap-4 relative border-none shadow-none bg-gray-50/50">
-            <div className="relative">
-              <Avatar
-                className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-background"
-                path={profile.profilePicture}
-                name={profile.name}
-              />
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handlePhotoSelect}
-              />
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 space-y-6">
+            {/* Avatar Section */}
+            <Card className="pt-6 pb-4 px-4 flex flex-col items-center gap-4 relative border-none shadow-none bg-gray-50/50">
+              <div className="relative">
+                <Avatar
+                  className="h-20 w-20 ring-4 ring-background"
+                  path={photoPreview || profile.profilePicture}
+                  name={profile.name}
+                />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                />
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="absolute bottom-0 right-0 rounded-full shadow-md hover:shadow-lg transition-shadow"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="text-center">
+                <h3 className="font-medium text-base">{profile.name}</h3>
+                <p className="text-sm text-muted-foreground">@{profile.username}</p>
+              </div>
+            </Card>
+
+            {/* Profile Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm">Display Name</Label>
+                  <div className="relative">
+                    <Input
+                      id="name"
+                      placeholder="Enter your name"
+                      value={formData.name}
+                      onChange={(e) => {
+                        setIsEditing(true)
+                        setFormData(prev => ({ ...prev, name: e.target.value }))
+                      }}
+                      className="pl-9 h-9 bg-white border-0
+                      text-sm placeholder:text-gray-500
+                      rounded-2xl ring-1 ring-gray-200
+                      focus-visible:ring-2 focus-visible:ring-primary/20
+                      transition-all duration-200"
+                    />
+                    <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-sm">Username</Label>
+                  <div className="relative">
+                    <Input
+                      id="username"
+                      placeholder="Enter your username"
+                      value={formData.username}
+                      onChange={(e) => {
+                        setIsEditing(true)
+                        setFormData(prev => ({ ...prev, username: e.target.value }))
+                      }}
+                      className="pl-9 h-9 bg-white border-0
+                      text-sm placeholder:text-gray-500
+                      rounded-2xl ring-1 ring-gray-200
+                      focus-visible:ring-2 focus-visible:ring-primary/20
+                      transition-all duration-200"
+                    />
+                    <AtSign className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                  </div>
+                </div>
+              </div>
+
+              {showSaveButton && (
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1 h-9" disabled={saving}>
+                    {saving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsEditing(false)
+                      setSelectedPhoto(null)
+                      setPhotoPreview(null)
+                      setFormData({
+                        ...formData,
+                        name: profile.name,
+                        username: profile.username
+                      })
+                    }}
+                    disabled={saving}
+                    className="h-9"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </form>
+
+            {/* Delete Account Section */}
+            <div className="pt-4 border-t">
               <Button
-                size="icon"
-                variant="secondary"
-                className="absolute bottom-0 right-0 rounded-full shadow-md hover:shadow-lg transition-shadow"
-                onClick={() => fileInputRef.current?.click()}
+                variant="ghost"
+                className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 h-9"
+                onClick={() => setShowDeleteDialog(true)}
               >
-                <Camera className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Account
               </Button>
             </div>
-            <div className="text-center">
-              <h3 className="font-medium text-base sm:text-lg">{profile.name}</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">@{profile.username}</p>
-            </div>
-          </Card>
-
-          {/* Profile Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm sm:text-base">Display Name</Label>
-                <div className="relative">
-                  <Input
-                    id="name"
-                    placeholder="Enter your name"
-                    value={formData.name}
-                    onChange={(e) => {
-                      setIsEditing(true)
-                      setFormData(prev => ({ ...prev, name: e.target.value }))
-                    }}
-                    className="pl-9 text-sm sm:text-base"
-                  />
-                  <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="username" className="text-sm sm:text-base">Username</Label>
-                <div className="relative">
-                  <Input
-                    id="username"
-                    placeholder="Enter your username"
-                    value={formData.username}
-                    onChange={(e) => {
-                      setIsEditing(true)
-                      setFormData(prev => ({ ...prev, username: e.target.value }))
-                    }}
-                    className="pl-9 text-sm sm:text-base"
-                  />
-                  <AtSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-            </div>
-
-            {showSaveButton && (
-              <div className="flex gap-2 pt-2">
-                <Button type="submit" className="flex-1 text-sm sm:text-base h-9 sm:h-10" disabled={saving}>
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setIsEditing(false)
-                    setSelectedPhoto(null)
-                    setPhotoPreview(null)
-                    setFormData({
-                      ...formData,
-                      name: profile.name,
-                      username: profile.username
-                    })
-                  }}
-                  disabled={saving}
-                  className="text-sm sm:text-base h-9 sm:h-10"
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </form>
-
-          {/* Delete Account Section */}
-          <div className="pt-4 border-t">
-            <Button
-              variant="ghost"
-              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 text-sm sm:text-base h-9 sm:h-10"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              Delete Account
-            </Button>
           </div>
         </div>
 
@@ -296,13 +312,13 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent className="sm:max-w-[425px]">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-base sm:text-lg">Delete Account</AlertDialogTitle>
-              <AlertDialogDescription className="pt-2 text-sm sm:text-base">
+              <AlertDialogTitle className="text-base">Delete Account</AlertDialogTitle>
+              <AlertDialogDescription className="pt-2 text-sm">
                 This action cannot be undone. This will permanently delete your account and remove your data from our servers.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="py-4">
-              <Label htmlFor="password" className="text-sm sm:text-base font-medium">
+              <Label htmlFor="password" className="text-sm font-medium">
                 Please enter your password to confirm
               </Label>
               <Input
@@ -311,14 +327,18 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                className="mt-2 text-sm sm:text-base"
+                className="mt-2 text-sm h-9 bg-white border-0
+                placeholder:text-gray-500
+                rounded-2xl ring-1 ring-gray-200
+                focus-visible:ring-2 focus-visible:ring-primary/20
+                transition-all duration-200"
               />
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel className="text-sm sm:text-base h-9 sm:h-10">Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="text-sm h-9">Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
-                className="bg-destructive hover:bg-destructive/90 text-sm sm:text-base h-9 sm:h-10"
+                className="bg-destructive hover:bg-destructive/90 text-sm h-9"
               >
                 Delete Account
               </AlertDialogAction>
