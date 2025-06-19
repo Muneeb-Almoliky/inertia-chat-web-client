@@ -1,3 +1,4 @@
+// src/lib/services/websocketService.ts
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { ChatMessage, MessageType } from '@/types/chat'
@@ -6,6 +7,8 @@ import { useAuthStore } from '@/lib/store/auth.store'
 type PendingSub = {
   chatId: number
   onMessage: (m: ChatMessage) => void
+  onUpdate: (m: ChatMessage) => void
+  onDelete: (messageId: number) => void
 }
 
 class WebSocketService {
@@ -13,7 +16,7 @@ class WebSocketService {
   private subscriptions: Record<number, StompSubscription> = {}
   private onConnectCbs: Array<() => void> = []
   private pendingSubs: PendingSub[] = []
-  private connected = false  // <-- track connection state
+  private connected = false
 
   onConnect(cb: () => void) {
     this.onConnectCbs.push(cb)
@@ -25,12 +28,7 @@ class WebSocketService {
 
   connect() {
     const { accessToken } = useAuthStore.getState()
-    console.log('STOMP connecting with token:', accessToken)
-
-    if (this.connected) {
-      console.log('Already connected, skipping connect')
-      return
-    }
+    if (this.connected) return
 
     this.client = new Client({
       webSocketFactory: () =>
@@ -42,29 +40,25 @@ class WebSocketService {
     })
 
     this.client.onConnect = () => {
-      console.log('STOMP connected')
       this.connected = true
-
       // Drain buffered subs
-      this.pendingSubs.forEach(({ chatId, onMessage }) =>
-        this._doSubscribe(chatId, onMessage)
+      this.pendingSubs.forEach(ps =>
+        this._doSubscribe(ps.chatId, ps.onMessage, ps.onUpdate, ps.onDelete)
       )
       this.pendingSubs = []
-
-      // Fire onConnect callbacks
       this.onConnectCbs.forEach(cb => cb())
     }
 
     this.client.onStompError = frame => {
-      console.error('STOMP error frame:', frame)
+      console.error('STOMP error:', frame)
       this.connected = false
     }
     this.client.onWebSocketError = err => {
       console.error('WebSocket error:', err)
       this.connected = false
     }
-    this.client.onWebSocketClose = evt => {
-      console.warn('WebSocket closed:', evt)
+    this.client.onWebSocketClose = () => {
+      console.warn('WebSocket closed')
       this.connected = false
     }
 
@@ -79,44 +73,61 @@ class WebSocketService {
     this.client.deactivate()
     this.client = null
     this.connected = false
-    console.log('STOMP disconnected')
   }
 
-  subscribeToChat(chatId: number, onMessage: (m: ChatMessage) => void) {
+  subscribeToChat(
+    chatId: number,
+    onMessage: (m: ChatMessage) => void,
+    onUpdate: (m: ChatMessage) => void,
+    onDelete: (messageId: number) => void
+  ) {
     if (!this.client || !this.client.connected) {
-      console.log(`Buffering subscribe for chat ${chatId}`)
-      this.pendingSubs.push({ chatId, onMessage })
+      this.pendingSubs.push({ chatId, onMessage, onUpdate, onDelete })
       return
     }
-    this._doSubscribe(chatId, onMessage)
+    this._doSubscribe(chatId, onMessage, onUpdate, onDelete)
   }
 
-  private _doSubscribe(chatId: number, onMessage: (m: ChatMessage) => void) {
+  private _doSubscribe(
+    chatId: number,
+    onMessage: (m: ChatMessage) => void,
+    onUpdate: (m: ChatMessage) => void,
+    onDelete: (messageId: number) => void
+  ) {
+    // Unsubscribe any existing one
     this.subscriptions[chatId]?.unsubscribe()
 
     this.subscriptions[chatId] = this.client!.subscribe(
       `/topic/chat.${chatId}`,
-      (msg: IMessage) => {
-        console.log(`Received STOMP message on chat.${chatId}:`, msg.body)
-        onMessage(JSON.parse(msg.body) as ChatMessage)
+      (frame: IMessage) => {
+        const msg = JSON.parse(frame.body) as ChatMessage
+        switch (msg.type) {
+          case MessageType.CHAT:
+            onMessage(msg)
+            break
+          case MessageType.UPDATE:
+            onUpdate(msg)
+            break
+          case MessageType.DELETE:
+            // server sends just { type: 'DELETE', id: <messageId> }
+            onDelete(msg.id!)
+            break
+        }
       }
     )
-    console.log(`Subscribed to /topic/chat.${chatId}`)
   }
 
   unsubscribeFromChat(chatId: number) {
     this.subscriptions[chatId]?.unsubscribe()
     delete this.subscriptions[chatId]
-    console.log(`Unsubscribed from chat ${chatId}`)
     this.pendingSubs = this.pendingSubs.filter(ps => ps.chatId !== chatId)
   }
 
   sendMessage(payload: Omit<ChatMessage, 'id' | 'createdAt'>) {
     if (!this.client?.connected) {
-      console.error('STOMP not connected — cannot send message')
+      console.error('Cannot send — STOMP not connected')
       return
     }
-    console.log('Sending message payload:', payload)
     this.client.publish({
       destination: '/app/chat.send',
       body: JSON.stringify(payload),

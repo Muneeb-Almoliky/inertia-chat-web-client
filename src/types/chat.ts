@@ -7,6 +7,8 @@ export enum MessageType {
   CHAT = 'CHAT',
   JOIN = 'JOIN',
   LEAVE = 'LEAVE',
+  UPDATE = "UPDATE",
+  DELETE = "DELETE",
 }
 
 export enum AttachmentType {

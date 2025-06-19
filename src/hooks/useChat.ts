@@ -1,128 +1,137 @@
 'use client'
 
-import { useEffect, useMemo, useCallback } from 'react';
-import { useAuth } from './useAuth';
-import { chatService } from '@/services/chatService';
-import { websocketService } from '@/services/websocketService';
-import { MessageType } from '@/types/chat';
-import { useChatStore } from '@/lib/store/chat.store';
-import { MAX_FILE_SIZE_LABEL } from '@/constants/file';
+import { useEffect, useMemo, useCallback } from 'react'
+import { useAuth } from './useAuth'
+import { chatService } from '@/services/chatService'
+import { websocketService } from '@/services/websocketService'
+import { MessageType, ChatMessage } from '@/types/chat'
+import { useChatStore } from '@/lib/store/chat.store'
+import { MAX_FILE_SIZE_LABEL } from '@/constants/file'
 
 export function useChat(chatId?: number) {
-  const { auth } = useAuth();
+  const { auth } = useAuth()
   const {
     setChats,
     setMessages,
     addMessage,
+    updateMessage,
+    deleteMessage,
     setLoadingState,
     setActiveChat,
     chats,
     loadingStates,
-    removeChat
-  } = useChatStore();
-  
-  const emptyArr = useMemo(() => [], []);
-  const messages = useChatStore(state => (chatId != null ? state.messages[chatId] ?? emptyArr : emptyArr));
+    removeChat,
+  } = useChatStore()
+
+  const emptyArr: ChatMessage[] = useMemo(() => [], [])
+  const messages = useChatStore(state =>
+    chatId != null ? state.messages[chatId] ?? emptyArr : emptyArr
+  )
 
   const chatType = useMemo(() => {
-    if (!chatId) return undefined;
-    const chat = chats.find(c => c.id === chatId);
-    return chat ? chat.type : undefined;
-  }, [chatId, chats]);
+    if (!chatId) return undefined
+    return chats.find(c => c.id === chatId)?.type
+  }, [chatId, chats])
 
   const refetch = useCallback(async () => {
-    if (!chatId) return;
-    setLoadingState('initialLoad', true);
+    if (!chatId) return
+    setLoadingState('initialLoad', true)
     try {
-      const response = await chatService.getChatHistory(chatId);
-      setMessages(chatId, response.data);
-    } catch (error) {
-      console.error('Failed to refetch messages:', error);
+      const resp = await chatService.getChatHistory(chatId)
+      setMessages(chatId, resp.data)
+    } catch (err) {
+      console.error('Failed to refetch messages:', err)
     } finally {
-      setLoadingState('initialLoad', false);
+      setLoadingState('initialLoad', false)
     }
-  }, [chatId, setLoadingState, setMessages]);
+  }, [chatId, setLoadingState, setMessages])
 
-  // Load user chats once
+  // load chats once
   useEffect(() => {
     chatService.getUserChats()
       .then(setChats)
-      .catch(err => console.error('Failed to load chats:', err));
-  }, [setChats]);
+      .catch(err => console.error('Failed to load chats:', err))
+  }, [setChats])
 
-  // When auth flips true, connect STOMP
+  // connect when authenticated
   useEffect(() => {
-    if (!auth.isAuthenticated) return;
-    
-    if (!websocketService.isConnected()) {  
-      websocketService.connect();
-    }
-  
+    if (!auth.isAuthenticated) return
+    if (!websocketService.isConnected()) websocketService.connect()
     return () => {
-      if(websocketService.isConnected())
-        websocketService.disconnect();
+      if (websocketService.isConnected()) websocketService.disconnect()
     }
-  }, [auth.isAuthenticated]);
+  }, [auth.isAuthenticated])
 
-  // When chatId changes, handle chat activation
+  // enter/leave chat on chatId change
   useEffect(() => {
-    if (!chatId) return;
-    setActiveChat(chatId);
-    
+    if (!chatId) return
+    setActiveChat(chatId)
     return () => {
-      websocketService.leaveChat(chatId, auth.username);
-      websocketService.unsubscribeFromChat(chatId);
-    };
-  }, [chatId, auth.username, setActiveChat]);
+      websocketService.leaveChat(chatId, auth.username)
+      websocketService.unsubscribeFromChat(chatId)
+    }
+  }, [chatId, auth.username, setActiveChat])
 
-  // When chatId is set and STOMP is connected
+  // initial load + live WS events
   useEffect(() => {
-    if (!auth.isAuthenticated || !chatId) return;
+    if (!auth.isAuthenticated || !chatId) return
 
-    setLoadingState('initialLoad', true);
-
-    // Load history
-    chatService.getChatHistory(chatId)
+    setLoadingState('initialLoad', true)
+    chatService
+      .getChatHistory(chatId)
       .then(resp => setMessages(chatId, resp.data))
       .catch(console.error)
-      .finally(() => setLoadingState('initialLoad', false));
+      .finally(() => setLoadingState('initialLoad', false))
 
-    // Setup live updates
     const onConnect = () => {
-      websocketService.joinChat(chatId, auth.username);
-      
-      websocketService.subscribeToChat(chatId, (msg) => {
-        addMessage(chatId, msg);
-      });
-    };
+      websocketService.joinChat(chatId, auth.username)
+      websocketService.subscribeToChat(
+        chatId,
+        // new message
+        msg => { if (msg.type === MessageType.CHAT)   addMessage(chatId, msg) },
+        // updated message
+        msg => { if (msg.type === MessageType.UPDATE) updateMessage(chatId, msg.id!, msg.content!) },
+        // deleted message
+        id  => deleteMessage(chatId, id)
+      )
+    }
 
-    websocketService.onConnect(onConnect);
-  }, [chatId, auth.isAuthenticated, auth.username, setMessages, addMessage, setLoadingState]);
+    websocketService.onConnect(onConnect)
+  }, [
+    chatId,
+    auth.isAuthenticated,
+    auth.username,
+    setMessages,
+    addMessage,
+    updateMessage,
+    deleteMessage,
+    setLoadingState,
+  ])
 
   const sendMessage = async (content: string, attachments?: File[]) => {
-    if (!chatId) return;
+    if (!chatId) return
     try {
-      const res = await chatService.sendMessageWithAttachments(chatId, content, attachments);
-      return res;
+      const res = await chatService.sendMessageWithAttachments(chatId, content, attachments)
+      return res
     } catch (err: any) {
-      console.error('[sendMessage] Error sending message:', err);
+      console.error('[sendMessage] Error sending message:', err)
       if (err.response?.data?.errors?.includes('Maximum upload size exceeded')) {
-        throw new Error(`File size too large. Maximum file size is ${MAX_FILE_SIZE_LABEL} per file.`);
+        throw new Error(`File size too large. Maximum file size is ${MAX_FILE_SIZE_LABEL} per file.`)
       }
-      throw err;
+      throw err
     }
-  };
+  }
 
-  const deleteChat = async (chatId: number) => {
+  const deleteChat = async (toDeleteId: number) => {
     try {
-      await chatService.deleteChat(chatId);
-      removeChat(chatId);
-      return true;
-    } catch (error) {
-      console.error('Failed to delete chat:', error);
-      throw error;
+      await chatService.deleteChat(toDeleteId)
+      removeChat(toDeleteId)
+      return true
+    } catch (err) {
+      console.error('Failed to delete chat:', err)
+      throw err
     }
-  };
+  }
 
   return { chats, messages, loading: loadingStates.initialLoad, chatType, sendMessage, deleteChat, refetch };
 }

@@ -85,43 +85,69 @@ export const useChatStore = create<ChatStore>((set) => ({
   }),
   updateMessage: (chatId, messageId, content) =>
     set((state) => {
-      const currentMessages = state.messages[chatId] || [];
-      const messageIndex = currentMessages.findIndex(msg => msg.id === messageId);
-      
-      if (messageIndex === -1) return state;
+      const msgs = state.messages[chatId] ?? []
+      const idx = msgs.findIndex((m) => m.id === messageId)
+      if (idx === -1) return {}  
 
-      const updatedMessages = [...currentMessages];
-      updatedMessages[messageIndex] = {
-        ...updatedMessages[messageIndex],
-        content
-      };
+      // update the in‑chat copy
+      const updatedMsg = { ...msgs[idx], content }
+      const updatedMsgs = [...msgs]
+      updatedMsgs[idx] = updatedMsg
 
-      const newEditingMessage = 
-        state.editingMessage?.id === messageId ? null : state.editingMessage;
+      // if that was the lastMessage in the sidebar, patch it there too
+      const updatedChats = state.chats.map((c) => {
+        if (c.id === chatId && c.lastMessage?.id === messageId) {
+          return { ...c, lastMessage: updatedMsg }
+        }
+        return c
+      })
 
+      // clear out editingMessage if you just saved it
+      const currentEdit = state.editingMessage
+      const nextEdit =
+        currentEdit?.chatId === chatId && currentEdit.id === messageId
+          ? null
+          : currentEdit
+
+      return {
+        messages: { ...state.messages, [chatId]: updatedMsgs },
+        chats: updatedChats,
+        editingMessage: nextEdit,
+      }
+    }),
+  deleteMessage: (chatId, messageId) =>
+    set(state => {
+      // filter out the deleted message
+      const remaining = (state.messages[chatId] ?? []).filter(m => m.id !== messageId)
+
+      // pick the new preview: the last item in `remaining`, or undefined
+      const newLastMessage = remaining.length > 0
+        ? remaining[remaining.length - 1]
+        : undefined
+
+      // update the chat list, swapping out lastMessage only for this chat
+      const newChats = state.chats.map(c => {
+        if (c.id !== chatId) return c
+        return { ...c, lastMessage: newLastMessage }
+      })
+
+      // if we were editing that exact message, cancel it
+      const newEdit =
+        state.editingMessage?.chatId === chatId &&
+        state.editingMessage.id === messageId
+          ? null
+          : state.editingMessage
 
       return {
         messages: {
           ...state.messages,
-          [chatId]: updatedMessages
+          [chatId]: remaining
         },
-        editingMessage: newEditingMessage
-      };
+        chats: newChats,
+        editingMessage: newEdit
+      }
     }),
-  deleteMessage: (chatId, messageId) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [chatId]: state.messages[chatId]?.filter(msg => msg.id !== messageId) || [],
-      },
-      editingMessage: state.editingMessage?.id === messageId ? null : state.editingMessage
-    })),
-  setLoadingState: (state, loading) => set((prev) => ({
-    loadingStates: {
-      ...prev.loadingStates,
-      [state]: loading
-    }
-  })),
+
   setActiveChat: (chatId) => set({ activeChat: chatId }),
   removeChat: (chatId) => set((state) => ({
     chats: state.chats.filter(chat => chat.id !== chatId),
