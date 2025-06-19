@@ -96,52 +96,60 @@ export function ConversationList({ search }: ConversationListProps) {
   const getAttachmentIcon = (type: AttachmentType) => {
     switch (type) {
       case AttachmentType.IMAGE:
-        return <Image className="h-4 w-4 text-blue-500" />;
+        return <Image className="h-4 w-4 text-blue-500" />
       case AttachmentType.VIDEO:
-        return <Video className="h-4 w-4 text-purple-500" />;
+        return <Video className="h-4 w-4 text-purple-500" />
       case AttachmentType.AUDIO:
-        return <Music className="h-4 w-4 text-green-500" />;
+        return <Music className="h-4 w-4 text-green-500" />
       case AttachmentType.VOICE:
-        return <Mic className="h-4 w-4 text-green-500" />;
+        return <Mic className="h-4 w-4 text-green-500" />
       case AttachmentType.GIF:
-        return <Image className="h-4 w-4 text-teal-500" />;
+        return <Image className="h-4 w-4 text-teal-500" />
       case AttachmentType.DOCUMENT:
       default:
-        return <File className="h-4 w-4 text-gray-500" />;
+        return <File className="h-4 w-4 text-gray-500" />
     }
-  };
+  }
 
   const getAttachmentPreview = (msg: ChatMessage): React.ReactNode => {
-    const attachment = msg.attachments?.[0];
-    if (!attachment) return null;
-    
+    const attachment = msg.attachments?.[0]
+    if (!attachment) return null
+
     const getLabel = () => {
       switch (attachment.type) {
         case AttachmentType.IMAGE:
-          return "Image";
+          return "Image"
         case AttachmentType.VIDEO:
-          return "Video";
+          return "Video"
         case AttachmentType.AUDIO:
-          return "Audio";
+          return "Audio"
         case AttachmentType.VOICE:
-          return "Voice message";
+          return "Voice message"
         case AttachmentType.GIF:
-          return "GIF";
+          return "GIF"
         case AttachmentType.DOCUMENT:
-          return "Document";
+          return "Document"
         default:
-          return "Attachment";
+          return "Attachment"
       }
-    };
+    }
 
     return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <div className="flex items-center justify-center">
+      <div className="flex items-center gap-2 text-muted-foreground truncate">
+        <div className="flex-shrink-0 flex items-center justify-center">
           {getAttachmentIcon(attachment.type)}
         </div>
-        <span className="text-xs font-medium">{getLabel()}</span>
+        <span className="text-xs font-medium truncate">
+          {getLabel()}
+        </span>
       </div>
-    );
+    )
+  }
+
+  // Truncate text helper (adjust maxLength here)
+  const truncateText = (text: string, maxLength: number = 25) => {
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + '...'
   }
 
   return (
@@ -160,16 +168,16 @@ export function ConversationList({ search }: ConversationListProps) {
             className={cn(
               "flex items-center gap-3 p-4 transition-colors group",
               "border-b last:border-b-0",
-              isActive 
-                ? "bg-primary/10 dark:bg-primary/20" 
+              isActive
+                ? "bg-primary/10 dark:bg-primary/20"
                 : "hover:bg-accent"
             )}
           >
             <button
               onClick={() => router.push(`/chat/${chat.id}`)}
-              className="flex items-center gap-3 flex-1"
+              className="flex items-center gap-3 flex-1 min-w-0"
             >
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <Avatar
                   path={other.profilePicture}
                   name={other.name}
@@ -186,39 +194,46 @@ export function ConversationList({ search }: ConversationListProps) {
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <p className="font-medium truncate">{other.name}</p>
                   {lastMsg?.createdAt && (
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
                       {formatMessageDate(new Date(lastMsg.createdAt))}
                     </span>
                   )}
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <span className={cn(
-                    "text-xs whitespace-nowrap",
-                    userStatus === UserStatus.ONLINE 
-                      ? "text-green-500" 
-                      : "text-gray-400"
-                  )}>
+
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={cn(
+                      "text-xs whitespace-nowrap flex-shrink-0",
+                      userStatus === UserStatus.ONLINE
+                        ? "text-green-500"
+                        : "text-gray-400"
+                    )}
+                  >
                     {userStatus.toLowerCase()}
                   </span>
-                  
-                  <div className="flex-1 truncate min-h-[20px]">
+
+                  <div className="flex-1 min-h-[20px] min-w-0 truncate">
                     {lastMsg?.content?.trim() ? (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 min-w-0 flex-1">
                         <span
-                          className="text-sm text-muted-foreground truncate inline-flex items-center [&_img.emoji]:inline-block [&_img.emoji]:size-[1.15em] [&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.075em]"
+                          className="text-sm text-muted-foreground truncate min-w-0 inline-flex items-center
+                          [&_img.emoji]:inline-block [&_img.emoji]:size-[1.15em] [&_img.emoji]:align-[-0.3em]
+                          [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.075em]"
+                          title={lastMsg.content}
                           dangerouslySetInnerHTML={{
-                            __html: parseEmoji(lastMsg.content),
+                            __html: parseEmoji(truncateText(lastMsg.content, 25)),
                           }}
                         />
                         {(lastMsg?.attachments?.length ?? 0) > 0 && (
                           <span className="flex-shrink-0 text-muted-foreground">
-                            {getAttachmentIcon(lastMsg.attachments?.[0]?.type ?? AttachmentType.DOCUMENT)}
+                            {getAttachmentIcon(
+                              lastMsg.attachments?.[0]?.type ?? AttachmentType.DOCUMENT
+                            )}
                           </span>
                         )}
                       </div>
                     ) : lastMsg?.attachments?.length ? (
-                      getAttachmentPreview(lastMsg)
+                      <div className="min-w-0">{getAttachmentPreview(lastMsg)}</div>
                     ) : (
                       <span className="italic text-xs text-muted-foreground">
                         No messages yet
@@ -231,18 +246,20 @@ export function ConversationList({ search }: ConversationListProps) {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className={cn(
-                  "opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity p-2 rounded-full",
-                  isActive ? "opacity-100" : "",
-                  "hover:bg-accent/50 data-[state=open]:bg-accent"
-                )}>
+                <button
+                  className={cn(
+                    "opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity p-2 rounded-full flex-shrink-0",
+                    isActive ? "opacity-100" : "",
+                    "hover:bg-accent/50 data-[state=open]:bg-accent"
+                  )}
+                >
                   <MoreVertical className="h-4 w-4" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[200px]">
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                  onClick={(e) => {
+                  onClick={e => {
                     e.stopPropagation()
                     setChatToDelete(chat.id)
                   }}
@@ -261,15 +278,13 @@ export function ConversationList({ search }: ConversationListProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Chat</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this chat? This will only remove it from your view.
+              Are you sure you want to delete this chat? This will only remove it from your
+              view.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteChat}
-              className="bg-destructive hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDeleteChat} className="bg-destructive hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
