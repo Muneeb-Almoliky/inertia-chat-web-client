@@ -35,23 +35,25 @@ export function useChat(chatId?: number) {
 
   const refetch = useCallback(async () => {
     if (!chatId) return
-    setLoadingState('initialLoad', true)
+    setLoadingState('messagesLoad', true)
     try {
       const resp = await chatService.getChatHistory(chatId)
       setMessages(chatId, resp.data)
     } catch (err) {
       console.error('Failed to refetch messages:', err)
     } finally {
-      setLoadingState('initialLoad', false)
+      setLoadingState('messagesLoad', false)
     }
   }, [chatId, setLoadingState, setMessages])
 
   // load chats once
   useEffect(() => {
+    setLoadingState('chatsLoad', true)
     chatService.getUserChats()
       .then(setChats)
       .catch(err => console.error('Failed to load chats:', err))
-  }, [setChats])
+      .finally(() => setLoadingState('chatsLoad', false))
+  }, [setChats, setLoadingState])
 
   // connect when authenticated
   useEffect(() => {
@@ -76,12 +78,12 @@ export function useChat(chatId?: number) {
   useEffect(() => {
     if (!auth.isAuthenticated || !chatId) return
 
-    setLoadingState('initialLoad', true)
+    setLoadingState('messagesLoad', true)
     chatService
       .getChatHistory(chatId)
       .then(resp => setMessages(chatId, resp.data))
       .catch(console.error)
-      .finally(() => setLoadingState('initialLoad', false))
+      .finally(() => setLoadingState('messagesLoad', false))
 
     const onConnect = () => {
       websocketService.joinChat(chatId, auth.username)
@@ -133,5 +135,13 @@ export function useChat(chatId?: number) {
     }
   }
 
-  return { chats, messages, loading: loadingStates.initialLoad, chatType, sendMessage, deleteChat, refetch };
+  return { 
+    chats, 
+    messages, 
+    loading: loadingStates.messagesLoad, 
+    chatType, 
+    sendMessage, 
+    deleteChat, 
+    refetch 
+  };
 }

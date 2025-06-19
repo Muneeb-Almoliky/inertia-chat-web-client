@@ -94,14 +94,14 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(true);
   // const [editingMessage, setEditingMessage] = useState<{ id: number; content: string } | null>(null);
-  const [messageToDelete, setMessageToDelete] = useState<number | null>(null);
 const { 
     editingMessage, 
     setEditingMessage,
     updateMessage: updateStoreMessage,
-    deleteMessage: deleteStoreMessage
+    deleteMessage: deleteStoreMessage,
+    loadingStates
   } = useChatStore();
-
+  const [messageToDelete, setMessageToDelete] = useState<number | null>(null);
 
   useScrollActivity(containerRef, () => {
     setIsScrolling(false);
@@ -327,7 +327,7 @@ const {
     }
   };
 
-  if (loading && !editingMessage && messages.length === 0) {
+  if (loadingStates.messagesLoad && !editingMessage) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

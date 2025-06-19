@@ -5,7 +5,8 @@ interface ChatStore {
   chats: Chat[];
   messages: { [key: number]: ChatMessage[] }; // { chatId: messages[] }
   loadingStates: {
-    initialLoad: boolean;
+    chatsLoad: boolean;
+    messagesLoad: boolean;
     messageUpdate: boolean;
     messageDelete: boolean;
   };
@@ -36,7 +37,8 @@ const initialState: ChatStore = {
     chats: [],
     messages: {},
     loadingStates: {
-      initialLoad: true,
+      chatsLoad: true,
+      messagesLoad: false,
       messageUpdate: false,
       messageDelete: false
     },
