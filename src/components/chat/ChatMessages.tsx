@@ -7,7 +7,7 @@ import { useChat } from "@/hooks/useChat"
 import { format } from "date-fns"
 import { Loader2, FileText, Image, File, Video, Music, Download, Mic, MoreVertical, Pencil, Trash2 } from "lucide-react"
 import { useAuth } from "@/hooks"
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Attachment, AttachmentType } from "@/types/chat"
 import { getApiBaseUrl } from "@/utils/api"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,6 @@ import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
 import { useScrollActivity } from "@/hooks"
 import { isSameDay } from "@/utils/date"
 import { parseEmoji } from "@/utils/emoji";
-import { ChatInput } from "./ChatInput"
 import { messageService } from "@/services/messageService"
 import { toast } from "sonner"
 import {
@@ -89,13 +88,20 @@ const getImageFit = (count: number) => {
 export function ChatMessages({ conversationId }: ChatMessagesProps) {
   const { auth } = useAuth()
   const { messages, loading, chatType } = useChat(Number(conversationId))
-  const { updateMessage: updateStoreMessage, deleteMessage: deleteStoreMessage } = useChatStore()
+  // const { updateMessage: updateStoreMessage, deleteMessage: deleteStoreMessage } = useChatStore()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(true);
-  const [editingMessage, setEditingMessage] = useState<{ id: number; content: string } | null>(null);
+  // const [editingMessage, setEditingMessage] = useState<{ id: number; content: string } | null>(null);
   const [messageToDelete, setMessageToDelete] = useState<number | null>(null);
+const { 
+    editingMessage, 
+    setEditingMessage,
+    updateMessage: updateStoreMessage,
+    deleteMessage: deleteStoreMessage
+  } = useChatStore();
+
 
   useScrollActivity(containerRef, () => {
     setIsScrolling(false);
@@ -120,6 +126,23 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // const handleEditMessage = (messageId: number, content: string) => {
+  //   setEditingMessage(messageId, content);
+  // };
+
+   const handleEditMessage = (messageId: number, content: string) => {
+    setEditingMessage({
+      id: messageId,
+      content,
+      chatId: Number(conversationId)
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+  };
+
 
   const handleDownload = async (url: string, fileName: string) => {
     try {
@@ -279,14 +302,6 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
     return emojiElements.length === 1 && div.textContent?.trim() === '';
   };
 
-  const handleEditMessage = (messageId: number, content: string) => {
-    setEditingMessage({ id: messageId, content });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingMessage(null);
-  };
-
   const handleUpdateMessage = async (messageId: number, content: string) => {
     try {
       await messageService.updateMessage(messageId, content);
@@ -297,6 +312,8 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
       toast.error("Failed to update message");
     }
   };
+
+  
 
   const handleDeleteMessage = async (messageId: number) => {
     try {
@@ -352,8 +369,8 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
           const hasAttachments = Array.isArray(message.attachments) && message.attachments.length > 0;
           const hasContent = message?.content && message?.content.trim().length > 0;
           const isSingleEmojiMessage = hasContent && isSingleEmoji(message.content);
-          const isEditing = editingMessage?.id === message.id;
-
+          const isEditing = editingMessage?.id === message.id && 
+                                    editingMessage?.chatId === Number(conversationId);
           // Only show date header for the first message of each day
           const showDateHeader = i === 0 || (
             message.createdAt && 
@@ -389,7 +406,7 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
           }
 
           return (
-            <React.Fragment key={`${message.id ?? 'msg'}-${i}`}>
+            <Fragment key={`${message.id ?? 'msg'}-${i}`}>
               {showDateHeader && message.createdAt && (
                 <div 
                   className={cn(
@@ -453,52 +470,42 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                       )}
                     </div>
                   </div>
-                  {isEditing ? (
-                    <div className="min-w-[200px]">
-                      <ChatInput
-                        conversationId={conversationId}
-                        onMessageSent={() => handleUpdateMessage(message.id!, message.content)}
+                
+                  {hasAttachments && (
+                    <div
+                      className={cn(
+                        "rounded-lg p-2 max-w-md",
+                        isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                      )}
+                    >
+                      {renderAttachments(message.attachments!, isCurrentUser)}
+                    </div>
+                  )}
+                  {hasContent && (
+                    <div
+                      className={cn(
+                        "rounded-lg p-2 max-w-md",
+                        isSingleEmojiMessage 
+                          ? "!p-0"
+                          : isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "[&_img.emoji]:inline-block [&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.1em]",
+                          isSingleEmojiMessage 
+                            ? "[&_img.emoji]:size-[6.5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
+                            : "[&_img.emoji]:size-[1.3em]"
+                        )}
+                        dangerouslySetInnerHTML={{
+                          __html: parseEmoji(message.content),
+                        }}
                       />
                     </div>
-                  ) : (
-                    <>
-                      {hasAttachments && (
-                        <div
-                          className={cn(
-                            "rounded-lg p-2 max-w-md",
-                            isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
-                          )}
-                        >
-                          {renderAttachments(message.attachments!, isCurrentUser)}
-                        </div>
-                      )}
-                      {hasContent && (
-                        <div
-                          className={cn(
-                            "rounded-lg p-2 max-w-md",
-                            isSingleEmojiMessage 
-                              ? "!p-0"
-                              : isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "[&_img.emoji]:inline-block [&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.1em]",
-                              isSingleEmojiMessage 
-                                ? "[&_img.emoji]:size-[6.5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
-                                : "[&_img.emoji]:size-[1.3em]"
-                            )}
-                            dangerouslySetInnerHTML={{
-                              __html: parseEmoji(message.content),
-                            }}
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
+                  )}                  
                 </div>
               </div>
-            </React.Fragment>
+            </Fragment>
           )
         })}
       <div ref={messagesEndRef} />

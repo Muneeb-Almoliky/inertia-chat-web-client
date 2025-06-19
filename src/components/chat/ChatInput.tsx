@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Paperclip, Send, Smile, X, Mic, Square } from "lucide-react"
+import { useState, useRef, useEffect, FormEvent, ChangeEvent, ClipboardEvent, KeyboardEvent } from "react"
+import { Paperclip, Send, Smile, X, Mic, Square, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -19,30 +20,35 @@ import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
 import * as Popover from '@radix-ui/react-popover'
 import twemoji from 'twemoji'
 import { cn } from "@/lib/utils"
+import { useChatStore } from "@/lib/store/chat.store"
 
 interface ChatInputProps {
   conversationId: string
   onMessageSent?: () => void
+  isEditing?: boolean
+  onUpdateMessage?: (messageId: number, content: string) => void
+  isMainInput?: boolean
 }
-
-export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
+export function ChatInput({ conversationId, onMessageSent, isEditing = false, onUpdateMessage, isMainInput = true }: ChatInputProps) {
   const { sendMessage } = useChat(Number(conversationId))
-  const [message, setMessage] = React.useState("")
-  const [isSending, setIsSending] = React.useState(false)
-  const inputRef = React.useRef<HTMLDivElement>(null)
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
-  const [attachments, setAttachments] = React.useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = React.useState<{ [key: string]: string }>({})
-  const [showEmojiPicker, setShowEmojiPicker] = React.useState(false)
+  const [message, setMessage] = useState("")
+  const [isSending, setIsSending] = useState(false)
+  const inputRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [attachments, setAttachments] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<{ [key: string]: string }>({})
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   
-  const [isRecording, setIsRecording] = React.useState(false)
-  const [recordingTime, setRecordingTime] = React.useState(0)
-  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
-  const recordingTimerRef = React.useRef<NodeJS.Timeout | undefined>(undefined)
-  const audioChunksRef = React.useRef<Blob[]>([])
-  const [audioUrl, setAudioUrl] = React.useState<string | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordingTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const audioChunksRef = useRef<Blob[]>([])
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
 
-  React.useEffect(() => {
+  const { editingMessage, setEditingMessage } = useChatStore();
+
+  useEffect(() => {
     return () => {
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl)
@@ -50,7 +56,7 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     }
   }, [audioUrl])
 
-  React.useEffect(() => {
+  useEffect(() => {
     attachments.forEach(file => {
       if (file.type.startsWith('image/') && !imagePreviews[file.name]) {
         const reader = new FileReader();
@@ -64,6 +70,13 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
       }
     });
   }, [attachments]);
+
+  useEffect(() => {
+    if (editingMessage && inputRef.current) {
+      setMessage(editingMessage.content);
+      inputRef.current.innerHTML = editingMessage.content;
+    }
+  }, [editingMessage]);
 
   const convertTextToEmojiImages = (text: string) => {
     return twemoji.parse(text, {
@@ -79,7 +92,7 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     });
   };
 
-  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+  const handleInput = (e: FormEvent<HTMLDivElement>) => {
     const content = e.currentTarget.innerHTML;
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = content;
@@ -129,7 +142,7 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     selection?.addRange(range);
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handlePaste = (e: ClipboardEvent) => {
     e.preventDefault();
     const text = e.clipboardData.getData('text/plain');
     const selection = window.getSelection();
@@ -153,7 +166,7 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       const oversizedFiles = newFiles.filter(file => file.size > MAX_FILE_SIZE);
@@ -195,8 +208,20 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
   };
 
   const handleSend = async () => {
-    if ((!message.trim() && attachments.length === 0) || isSending) return
+    if ((!message.trim() && attachments.length === 0) || isSending || isRecording) return
     try {
+
+      if (isEditing && editingMessage && onUpdateMessage) {
+        const cleanedMessage = cleanMessageContent(message);
+        onUpdateMessage(editingMessage.id, cleanedMessage.trim());
+        setMessage("");
+      if (inputRef.current) {
+        inputRef.current.innerHTML = "";
+      }
+      setAttachments([]);
+      setImagePreviews({});
+      return;
+      }
       setIsSending(true)
       const cleanedMessage = cleanMessageContent(message);
       await sendMessage(cleanedMessage.trim(), attachments)
@@ -299,7 +324,7 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSend()
@@ -429,49 +454,82 @@ export function ChatInput({ conversationId, onMessageSent }: ChatInputProps) {
               "[&::-webkit-scrollbar]:w-2",
               "[&::-webkit-scrollbar-track]:bg-transparent",
               "[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20",
-              "[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/30"
+              "[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/30",
+              isEditing ? "bg-primary/10 dark:bg-primary/20 border border-primary" : ""
             )}
             contentEditable
             onInput={handleInput}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            data-placeholder={isRecording ? `Recording... ${formatTime(recordingTime)}` : "Type a message..."}
+            data-placeholder={
+                  isRecording 
+                    ? `Recording... ${formatTime(recordingTime)}` 
+                    : isEditing 
+                      ? "Edit your message..." 
+                      : "Type a message..."
+                }
             role="textbox"
             aria-multiline="true"
             aria-label="Message input"
           />
         </div>
-        {isRecording ? (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {formatTime(recordingTime)}
-            </span>
-            <Button
-              size="icon"
-              variant="destructive"
-              onClick={stopRecording}
-              className="animate-pulse"
-            >
-              <Square className="h-5 w-5" />
-            </Button>
-          </div>
-        ) : (
+{isEditing ? (
+    <>
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={() => {
+          setMessage("");
+          if (inputRef.current) inputRef.current.innerHTML = "";
+          setEditingMessage(null);
+        }}
+        disabled={isSending}
+      >
+        <X className="h-5 w-5" />
+      </Button>
+      <Button
+        size="icon"
+        onClick={handleSend}
+        disabled={isSending || (message.trim().length === 0 && attachments.length === 0)}
+      >
+        <Check className="h-5 w-5" />
+      </Button>
+    </>
+  ) : (
+    <>
+      {isRecording ? (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            {formatTime(recordingTime)}
+          </span>
           <Button
             size="icon"
-            variant="ghost"
-            onClick={startRecording}
-            disabled={isSending}
+            variant="destructive"
+            onClick={stopRecording}
+            className="animate-pulse"
           >
-            <Mic className="h-5 w-5" />
+            <Square className="h-5 w-5" />
           </Button>
-        )}
+        </div>
+      ) : (
         <Button
           size="icon"
-          onClick={handleSend}
-          disabled={isSending || isRecording || (message.trim().length === 0 && attachments.length === 0)}
+          variant="ghost"
+          onClick={startRecording}
+          disabled={isSending}
         >
-          <Send className="h-5 w-5" />
+          <Mic className="h-5 w-5" />
         </Button>
+      )}
+      <Button
+        size="icon"
+        onClick={handleSend}
+        disabled={isSending || isRecording || (message.trim().length === 0 && attachments.length === 0)}
+      >
+        <Send className="h-5 w-5" />
+      </Button>
+    </>
+  )}
       </div>
     </div>
   )

@@ -10,6 +10,12 @@ interface ChatStore {
     messageDelete: boolean;
   };
   activeChat?: number;
+
+  editingMessage: {
+    id: number;
+    content: string;
+    chatId: number;
+  } | null;
   
   setChats: (chats: Chat[]) => void;
   setMessages: (chatId: number, messages: ChatMessage[]) => void;
@@ -19,6 +25,11 @@ interface ChatStore {
   setLoadingState: (state: keyof ChatStore['loadingStates'], loading: boolean) => void;
   setActiveChat: (chatId: number) => void;
   removeChat: (chatId: number) => void;
+  setEditingMessage: (message: {
+    id: number;
+    content: string;
+    chatId: number;
+  } | null) => void;
 }
 
 const initialState: ChatStore = {
@@ -29,6 +40,7 @@ const initialState: ChatStore = {
       messageUpdate: false,
       messageDelete: false
     },
+    editingMessage: null,
     setChats: () => {},
     setMessages: () => {},
     addMessage: () => {},
@@ -36,8 +48,10 @@ const initialState: ChatStore = {
     deleteMessage: () => {},
     setLoadingState: () => {},
     setActiveChat: () => {},
-    removeChat: () => {}
+    removeChat: () => {},
+    setEditingMessage: () => {}
 };
+
 
 export const useChatStore = create<ChatStore>((set) => ({
     ...initialState,
@@ -82,11 +96,16 @@ export const useChatStore = create<ChatStore>((set) => ({
         content
       };
 
+      const newEditingMessage = 
+        state.editingMessage?.id === messageId ? null : state.editingMessage;
+
+
       return {
         messages: {
           ...state.messages,
           [chatId]: updatedMessages
-        }
+        },
+        editingMessage: newEditingMessage
       };
     }),
   deleteMessage: (chatId, messageId) =>
@@ -95,6 +114,7 @@ export const useChatStore = create<ChatStore>((set) => ({
         ...state.messages,
         [chatId]: state.messages[chatId]?.filter(msg => msg.id !== messageId) || [],
       },
+      editingMessage: state.editingMessage?.id === messageId ? null : state.editingMessage
     })),
   setLoadingState: (state, loading) => set((prev) => ({
     loadingStates: {
@@ -109,4 +129,5 @@ export const useChatStore = create<ChatStore>((set) => ({
       Object.entries(state.messages).filter(([key]) => Number(key) !== chatId)
     ),
   })),
+  setEditingMessage: (message) => set({ editingMessage: message })
 }));

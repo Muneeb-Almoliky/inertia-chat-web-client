@@ -10,6 +10,9 @@ import { useAuth } from "@/hooks";
 import { cn } from "@/lib/utils";
 import { userService } from "@/services/userService";
 import { UserProfile, UserStatus } from "@/types/user";
+import { useChatStore } from "@/lib/store/chat.store";
+import { messageService } from "@/services/messageService";
+import { toast } from "sonner";
 
 interface ChatPageParams {
   conversationId: string;
@@ -22,6 +25,20 @@ function ChatPage() {
   const { auth } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([])
   const [otherUser, setOtherUser] = useState<{ name: string; status: string } | null>(null)
+  const { editingMessage, setEditingMessage } = useChatStore();
+
+  const handleUpdateMessage = async (messageId: number, content: string) => {
+    try {
+      await messageService.updateMessage(messageId, content);
+      // ... update in store ...
+      toast.success("Message updated successfully");
+    } catch (error) {
+      toast.error("Failed to update message");
+    } finally {
+      setEditingMessage(null);
+    }
+  };
+
   
   useEffect(() => {
     let isMounted = true;
@@ -92,6 +109,8 @@ function ChatPage() {
         <ChatInput 
           conversationId={conversationId} 
           onMessageSent={handleMessageSent}
+          isEditing={!!editingMessage}
+          onUpdateMessage={handleUpdateMessage}
         />
       </div>
     </>
