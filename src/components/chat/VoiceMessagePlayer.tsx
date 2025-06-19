@@ -76,28 +76,28 @@ export function VoiceMessagePlayer({ url, duration = 0, isCurrentUser = false, o
 
   return (
     <div className={cn(
-      "flex items-center gap-3",
+      "flex items-center gap-2 sm:gap-2.5 md:gap-3",
       isCurrentUser ? "flex-row-reverse" : "flex-row"
     )}>
       <Button
         size="icon"
         variant="ghost"
         className={cn(
-          "size-8 rounded-full cursor-pointer",
+          "size-6 sm:size-7 md:size-8 rounded-full cursor-pointer flex-shrink-0",
           isCurrentUser ? "hover:bg-white/10 hover:text-white" : "hover:bg-border"
         )}
         onClick={handlePlayPause}
       >
         {isPlaying ? (
-          <Pause className="h-5 w-5" />
+          <Pause className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
         ) : (
-          <Play className="h-5 w-5" />
+          <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
         )}
       </Button>
-      <div className="flex-1 min-w-0 w-[200px]">
-        <div className="w-full h-8">
+      <div className="flex-1 min-w-0 w-[140px] sm:w-[160px] md:w-[200px]">
+        <div className="w-full h-6 sm:h-7 md:h-8">
           <WavesurferPlayer
-            height={32}
+            height={24}
             waveColor={isCurrentUser ? "#5c6d96" : "#bbb"}
             progressColor={isCurrentUser ? "#b8c0d4" : "#555"}
             cursorColor="transparent"
@@ -112,14 +112,14 @@ export function VoiceMessagePlayer({ url, duration = 0, isCurrentUser = false, o
               onPause?.()
             }}
             interact={true}
-            barWidth={2}
+            barWidth={1}
             barGap={2}
-            barRadius={2}
+            barRadius={1}
             normalize={true}
           />
         </div>
         <div className={cn(
-          "text-xs mt-1",
+          "text-[10px] sm:text-xs md:text-sm mt-0.5 sm:mt-1",
           isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground"
         )}>
           {currentDuration > 0 ? `${formatTime(currentTime)} / ${formatTime(currentDuration)}` : 'Loading...'}

@@ -67,13 +67,13 @@ const getGridClass = (count: number) => {
     case 4:
       return "grid-cols-2";
     default:
-      return "grid-cols-3";
+      return "grid-cols-2 sm:grid-cols-3";
   }
 }
 
 const getImageClass = (count: number, index: number) => {
   if (count === 1) {
-    return "max-w-md max-h-96";
+    return "max-w-[280px] sm:max-w-md max-h-[280px] sm:max-h-96";
   }
   if (count === 3 && index === 0) {
     return "row-span-2";
@@ -169,10 +169,10 @@ const {
     );
 
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5 sm:gap-2">
         {images.length > 0 && (
           <div className={cn(
-            "grid gap-1",
+            "grid gap-1 sm:gap-1.5",
             getGridClass(images.length)
           )}>
             {images.map((att, idx) => {
@@ -181,7 +181,7 @@ const {
                 <div 
                   key={att.id}
                   className={cn(
-                    "relative overflow-hidden rounded-sm border transition-colors duration-200 group cursor-pointer",
+                    "relative overflow-hidden rounded-md border transition-colors duration-200 group cursor-pointer",
                     isCurrentUser ? "border-white/10" : "border-border",
                     images.length === 1 ? "flex justify-center" : "aspect-square",
                     getImageClass(images.length, idx)
@@ -202,13 +202,13 @@ const {
                     <Button
                       size="icon"
                       variant="secondary"
-                      className="size-8 rounded-full cursor-pointer hover:bg-background/80"
+                      className="size-7 sm:size-8 rounded-full cursor-pointer hover:bg-background/80"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(fullUrl, att.fileName);
                       }}
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
                 </div>
@@ -217,7 +217,7 @@ const {
           </div>
         )}
         {voiceMessages.length > 0 && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5 sm:gap-2">
             {voiceMessages.map((att) => {
               const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
               const audioId = `audio-${att.id}`;
@@ -225,11 +225,11 @@ const {
                 <div 
                   key={att.id}
                   className={cn(
-                    "rounded-sm overflow-hidden border transition-colors duration-200",
+                    "rounded-md overflow-hidden border transition-colors duration-200",
                     isCurrentUser ? "border-white/10" : "border-border"
                   )}
                 >
-                  <div className="p-2">
+                  <div className="p-1.5 sm:p-2">
                     <VoiceMessagePlayer
                       url={fullUrl}
                       duration={att.duration || 0}
@@ -251,21 +251,21 @@ const {
                 <div 
                   key={att.id}
                   className={cn(
-                    "rounded-sm overflow-hidden border transition-colors duration-200 group cursor-pointer",
+                    "rounded-md overflow-hidden border transition-colors duration-200 group cursor-pointer",
                     isCurrentUser ? "border-white/10" : "border-border"
                   )}
                   onClick={() => window.open(`${getApiBaseUrl()}${att.url}`, '_blank')}
                 >
-                  <div className="flex items-center gap-2 p-2">
-                    <div className="flex-1 flex items-center gap-2 transition-colors rounded-md p-1.5">
+                  <div className="flex items-center gap-2 p-1.5 sm:p-2">
+                    <div className="flex-1 flex items-center gap-2 transition-colors rounded-md p-1 sm:p-1.5">
                       <div className="flex-shrink-0">
                         {getAttachmentIcon(att.type)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">
+                        <div className="text-xs sm:text-sm font-medium break-all">
                           {att.fileName}
                         </div>
-                        <div className="text-xs opacity-70">
+                        <div className="text-[10px] sm:text-xs opacity-70">
                           {att.type.toLowerCase()}
                         </div>
                       </div>
@@ -274,7 +274,7 @@ const {
                       size="icon"
                       variant="ghost"
                       className={cn(
-                        "size-8 rounded-full cursor-pointer",
+                        "size-7 sm:size-8 rounded-full cursor-pointer",
                         isCurrentUser ? "hover:bg-white/10 hover:text-white" : "hover:bg-border"
                       )}
                       onClick={(e) => {
@@ -282,7 +282,7 @@ const {
                         handleDownload(fullUrl, att.fileName);
                       }}
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
                 </div>
@@ -353,7 +353,7 @@ const {
   return (
     <div 
       ref={containerRef} 
-      className="flex flex-col gap-4 p-4 relative chat-messages-container overflow-y-auto h-full"
+      className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 relative chat-messages-container overflow-y-auto h-full"
       onScroll={handleScroll}
     >
       {sortedMessages
@@ -398,7 +398,7 @@ const {
           if (message.type !== "CHAT") {
             return (
               <div key={`${message.id ?? 'msg'}-${i}`} className="flex justify-center">
-                <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground bg-muted px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 rounded-full">
                   {message.content}
                 </span>
               </div>
@@ -414,29 +414,37 @@ const {
                     isScrolling ? "sticky top-2 z-10" : "relative"
                   )}
                 >
-                  <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                  <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground bg-muted px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 rounded-full">
                     {getDateHeader(new Date(message.createdAt))}
                   </span>
                 </div>
               )}
               <div className={cn(
-                "flex gap-3 group/message",
+                "flex gap-1.5 sm:gap-2 md:gap-3 group/message",
                 isCurrentUser && "flex-row-reverse"
               )}>
                 {chatType === "GROUP" && (
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 flex-shrink-0">
                     <AvatarImage src={`https://avatar.vercel.sh/${message.senderName}.png`} />
                     <AvatarFallback>
                       {message.senderName.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 )}
-                <div className={cn("flex flex-col gap-1 relative", isCurrentUser && "items-end")}>
-                  <div className="flex items-center gap-2">
-                    {chatType === "GROUP" && <span className="text-sm font-medium">{message.senderName}</span>}
-                    <div className="flex items-center gap-1">
+                <div className={cn(
+                  "flex flex-col gap-0.5 sm:gap-1 relative", 
+                  isCurrentUser ? "items-end" : "items-start",
+                  "max-w-[75%] sm:max-w-[70%] md:max-w-[65%]"
+                )}>
+                  <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
+                    {chatType === "GROUP" && (
+                      <span className="text-[10px] sm:text-xs md:text-sm font-medium">
+                        {message.senderName}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-0.5 sm:gap-1">
                       {message.createdAt && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-[9px] sm:text-[10px] md:text-xs text-muted-foreground">
                           {format(new Date(message.createdAt), "h:mm a")}
                         </span>
                       )}
@@ -446,23 +454,25 @@ const {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 opacity-0 group-hover/message:opacity-100 transition-opacity"
+                              className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 opacity-0 group-hover/message:opacity-100 transition-opacity"
                             >
-                              <MoreVertical className="h-4 w-4" />
+                              <MoreVertical className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align={isCurrentUser ? "end" : "start"}>
+                          <DropdownMenuContent align={isCurrentUser ? "end" : "start"} className="min-w-[100px]">
                             <DropdownMenuItem
                               onClick={() => handleEditMessage(message.id!, message.content)}
+                              className="text-[10px] sm:text-xs md:text-sm"
                             >
-                              <Pencil className="mr-2 h-4 w-4" />
+                              <Pencil className="mr-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => setMessageToDelete(message.id!)}
+                              className="text-[10px] sm:text-xs md:text-sm"
                             >
-                              <Trash2 className="mr-2 h-4 w-4" />
+                              <Trash2 className="mr-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -474,7 +484,7 @@ const {
                   {hasAttachments && (
                     <div
                       className={cn(
-                        "rounded-lg p-2 max-w-md",
+                        "rounded-lg p-1 sm:p-1.5 md:p-2 w-full",
                         isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
                       )}
                     >
@@ -484,7 +494,8 @@ const {
                   {hasContent && (
                     <div
                       className={cn(
-                        "rounded-lg p-2 max-w-md",
+                        "rounded-lg p-1.5 sm:p-2 md:p-2.5 text-xs sm:text-sm md:text-base",
+                        "break-all whitespace-pre-wrap overflow-hidden",
                         isSingleEmojiMessage 
                           ? "!p-0"
                           : isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
@@ -494,8 +505,8 @@ const {
                         className={cn(
                           "[&_img.emoji]:inline-block [&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.1em]",
                           isSingleEmojiMessage 
-                            ? "[&_img.emoji]:size-[6.5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
-                            : "[&_img.emoji]:size-[1.3em]"
+                            ? "[&_img.emoji]:size-[3em] sm:[&_img.emoji]:size-[4em] md:[&_img.emoji]:size-[5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
+                            : "[&_img.emoji]:size-[1em] sm:[&_img.emoji]:size-[1.1em] md:[&_img.emoji]:size-[1.2em]"
                         )}
                         dangerouslySetInnerHTML={{
                           __html: parseEmoji(message.content),
@@ -510,17 +521,17 @@ const {
         })}
       <div ref={messagesEndRef} />
       <AlertDialog open={messageToDelete !== null} onOpenChange={() => setMessageToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[280px] sm:max-w-[350px] md:max-w-[425px] p-3 sm:p-4 md:p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Message</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-sm sm:text-base md:text-lg">Delete Message</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm">
               Are you sure you want to delete this message? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="text-[10px] sm:text-xs md:text-sm h-7 sm:h-8 md:h-9">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-[10px] sm:text-xs md:text-sm h-7 sm:h-8 md:h-9"
               onClick={() => messageToDelete && handleDeleteMessage(messageToDelete)}
             >
               Delete

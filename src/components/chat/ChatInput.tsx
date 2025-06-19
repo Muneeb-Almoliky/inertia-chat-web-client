@@ -332,30 +332,30 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5 sm:gap-2">
       {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2 p-2 bg-muted/50 rounded-lg">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-muted/50 rounded-lg">
           {attachments.map((file, idx) => (
             <div 
               key={idx} 
-              className="group relative flex items-center gap-2 bg-background px-2 py-1 rounded-md border"
+              className="group relative flex items-center gap-1.5 sm:gap-2 bg-background px-1.5 sm:px-2 py-1 rounded-md border"
             >
               {file.type.startsWith('image/') && imagePreviews[file.name] ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <img 
                     src={imagePreviews[file.name]} 
                     alt={file.name}
-                    className="h-8 w-8 object-cover rounded"
+                    className="h-7 w-7 sm:h-8 sm:w-8 object-cover rounded"
                   />
                   <div className="flex flex-col">
-                    <span className="text-sm truncate max-w-[120px]">{file.name}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs sm:text-sm break-all max-w-[100px] sm:max-w-[120px]">{file.name}</span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground">
                       {getFileType(file)} • {formatFileSize(file.size)}
                     </span>
                   </div>
                 </div>
               ) : isVoiceMessage(file) ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   {getFileIcon(file)}
                   <VoiceMessagePlayer
                     url={audioUrl || ''}
@@ -363,35 +363,45 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
                   />
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   {getFileIcon(file)}
                   <div className="flex flex-col">
-                    <span className="text-sm truncate max-w-[120px]">{file.name}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs sm:text-sm break-all max-w-[100px] sm:max-w-[120px]">{file.name}</span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground">
                       {getFileType(file)} • {formatFileSize(file.size)}
                     </span>
                   </div>
                 </div>
               )}
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-4.5 p-0 hover:bg-destructive hover:text-white rounded-circle cursor-pointer"
-                onClick={() => removeAttachment(idx)}
-              >
-                <X className="size-3.5" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-4 sm:size-4.5 p-0 hover:bg-destructive hover:text-white rounded-full cursor-pointer"
+                    onClick={() => removeAttachment(idx)}
+                  >
+                    <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remove attachment</TooltipContent>
+              </Tooltip>
             </div>
           ))}
         </div>
       )}
-      <div className="flex items-end gap-2">
-        <div className="flex-1 flex items-end gap-2">
+      <div className="flex items-end gap-1.5 sm:gap-2">
+        <div className="flex-1 flex items-end gap-1.5 sm:gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="icon" variant="ghost" asChild>
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-8 w-8 sm:h-9 sm:w-9" 
+                asChild
+              >
                 <label>
-                  <Paperclip className="h-5 w-5" />
+                  <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -408,15 +418,21 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
           </Tooltip>
           
           <Popover.Root open={showEmojiPicker}>
-            <Popover.Trigger asChild>
-              <Button 
-                size="icon" 
-                variant="ghost"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              >
-                <Smile className="h-5 w-5" />
-              </Button>
-            </Popover.Trigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Popover.Trigger asChild>
+                  <Button 
+                    size="icon" 
+                    variant="ghost"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="h-8 w-8 sm:h-9 sm:w-9"
+                  >
+                    <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </Popover.Trigger>
+              </TooltipTrigger>
+              <TooltipContent>Add emoji</TooltipContent>
+            </Tooltip>
             <Popover.Portal>
               <Popover.Content 
                 className="z-50 bg-background border rounded-lg shadow-md"
@@ -428,8 +444,8 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
                   onEmojiClick={onEmojiSelect}
                   emojiStyle={EmojiStyle.TWITTER}
                   theme={Theme.LIGHT}
-                  width={300}
-                  height={400}
+                  width={280}
+                  height={350}
                   lazyLoadEmojis={true}
                 />
                 <Popover.Arrow className="fill-background" />
@@ -440,21 +456,22 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
           <div
             ref={inputRef}
             className={cn(
-              "flex-1 min-h-16 max-h-48 overflow-y-auto overflow-x-hidden",
+              "flex-1 min-h-[48px] sm:min-h-[52px] max-h-40 sm:max-h-52 overflow-y-auto overflow-x-hidden",
               "rounded-md border border-input bg-transparent dark:bg-input/30",
-              "px-3 py-2 text-base md:text-sm",
+              "px-2.5 sm:px-3 py-2 sm:py-3 text-sm sm:text-base",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring",
               "disabled:cursor-not-allowed disabled:opacity-50",
               "transition-[color,box-shadow]",
               "[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-muted-foreground",
               "[&:empty]:before:pointer-events-none",
-              "[&_img.emoji]:inline-block [&_img.emoji]:w-[1.375em] [&_img.emoji]:h-[1.375em]",
+              "[&_img.emoji]:inline-block [&_img.emoji]:w-[1.25em] [&_img.emoji]:h-[1.25em]",
               "[&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.05em]",
-              "[&::-webkit-scrollbar]:w-2",
+              "[&::-webkit-scrollbar]:w-1.5",
               "[&::-webkit-scrollbar-track]:bg-transparent",
               "[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20",
               "[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/30",
+              "break-all whitespace-pre-wrap overflow-hidden",
               isEditing ? "bg-primary/10 dark:bg-primary/20 border border-primary" : ""
             )}
             contentEditable
@@ -462,74 +479,105 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             data-placeholder={
-                  isRecording 
-                    ? `Recording... ${formatTime(recordingTime)}` 
-                    : isEditing 
-                      ? "Edit your message..." 
-                      : "Type a message..."
-                }
+              isRecording 
+                ? `Recording... ${formatTime(recordingTime)}` 
+                : isEditing 
+                  ? "Edit your message..." 
+                  : "Type a message..."
+            }
             role="textbox"
             aria-multiline="true"
             aria-label="Message input"
           />
         </div>
-{isEditing ? (
-    <>
-      <Button
-        size="icon"
-        variant="ghost"
-        onClick={() => {
-          setMessage("");
-          if (inputRef.current) inputRef.current.innerHTML = "";
-          setEditingMessage(null);
-        }}
-        disabled={isSending}
-      >
-        <X className="h-5 w-5" />
-      </Button>
-      <Button
-        size="icon"
-        onClick={handleSend}
-        disabled={isSending || (message.trim().length === 0 && attachments.length === 0)}
-      >
-        <Check className="h-5 w-5" />
-      </Button>
-    </>
-  ) : (
-    <>
-      {isRecording ? (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            {formatTime(recordingTime)}
-          </span>
-          <Button
-            size="icon"
-            variant="destructive"
-            onClick={stopRecording}
-            className="animate-pulse"
-          >
-            <Square className="h-5 w-5" />
-          </Button>
-        </div>
-      ) : (
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={startRecording}
-          disabled={isSending}
-        >
-          <Mic className="h-5 w-5" />
-        </Button>
-      )}
-      <Button
-        size="icon"
-        onClick={handleSend}
-        disabled={isSending || isRecording || (message.trim().length === 0 && attachments.length === 0)}
-      >
-        <Send className="h-5 w-5" />
-      </Button>
-    </>
-  )}
+        {isEditing ? (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    setMessage("");
+                    if (inputRef.current) inputRef.current.innerHTML = "";
+                    setEditingMessage(null);
+                  }}
+                  disabled={isSending}
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                >
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Cancel edit</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  onClick={handleSend}
+                  disabled={isSending || (message.trim().length === 0 && attachments.length === 0)}
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                >
+                  <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Save changes</TooltipContent>
+            </Tooltip>
+          </>
+        ) : (
+          <>
+            {isRecording ? (
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {formatTime(recordingTime)}
+                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      onClick={stopRecording}
+                      className="animate-pulse h-8 w-8 sm:h-9 sm:w-9"
+                    >
+                      <Square className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Stop recording</TooltipContent>
+                </Tooltip>
+              </div>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={startRecording}
+                    disabled={isSending}
+                    className="h-8 w-8 sm:h-9 sm:w-9"
+                  >
+                    <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Record voice message</TooltipContent>
+              </Tooltip>
+            )}
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  onClick={handleSend}
+                  disabled={isSending || isRecording || (message.trim().length === 0 && attachments.length === 0)}
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                >
+                  <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Send message</TooltipContent>
+            </Tooltip>
+          </>
+        )}
       </div>
     </div>
   )
