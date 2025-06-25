@@ -1,6 +1,9 @@
-import { Users } from "lucide-react"
+"use client";
 
-export default function ChatPage() {
+import { Users } from "lucide-react"
+import { AuthGuard } from "@/components/auth/AuthGuard"
+
+function ChatPage() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-muted-foreground">
       <Users className="h-12 w-12 mb-4" />
@@ -10,4 +13,6 @@ export default function ChatPage() {
       </p>
     </div>
   )
-} 
+}
+
+export default AuthGuard(ChatPage);

@@ -32,7 +32,7 @@ const statusConfig = {
   [UserStatus.OFFLINE]: { label: 'Offline', color: 'bg-gray-400', bgColor: 'bg-gray-100/80', textColor: 'text-gray-600' },
 }
 
-function ChatPage() {
+function ConversationPage() {
   const params = useParams();
   const conversationId = params?.conversationId as ChatPageParams['conversationId'];
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -158,4 +158,4 @@ function ChatPage() {
   )
 }
 
-export default AuthGuard(ChatPage);
+export default AuthGuard(ConversationPage);
