@@ -1,19 +1,19 @@
-// src/lib/services/websocketService.ts
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
-import { ChatMessage, MessageType } from '@/types/chat'
+import { ChatMessage, MessageType, MessageStatusType, MessageStatus } from '@/types/chat'
 import { useAuthStore } from '@/lib/store/auth.store'
+import { messageService } from './messageService'
 
 type PendingSub = {
   chatId: number
   onMessage: (m: ChatMessage) => void
-  onUpdate: (m: ChatMessage) => void
+  onUpdate: (m: ChatMessage | MessageStatus) => void
   onDelete: (messageId: number) => void
 }
 
 class WebSocketService {
   private client: Client | null = null
-  private subscriptions: Record<number, StompSubscription> = {}
+  private subscriptions: Record<string | number, StompSubscription> = {}
   private onConnectCbs: Array<() => void> = []
   private pendingSubs: PendingSub[] = []
   private connected = false
@@ -78,7 +78,7 @@ class WebSocketService {
   subscribeToChat(
     chatId: number,
     onMessage: (m: ChatMessage) => void,
-    onUpdate: (m: ChatMessage) => void,
+    onUpdate: (m: ChatMessage | MessageStatus) => void,
     onDelete: (messageId: number) => void
   ) {
     if (!this.client || !this.client.connected) {
@@ -91,7 +91,7 @@ class WebSocketService {
   private _doSubscribe(
     chatId: number,
     onMessage: (m: ChatMessage) => void,
-    onUpdate: (m: ChatMessage) => void,
+    onUpdate: (m: ChatMessage | MessageStatus) => void,
     onDelete: (messageId: number) => void
   ) {
     // Unsubscribe any existing one
@@ -104,6 +104,9 @@ class WebSocketService {
         switch (msg.type) {
           case MessageType.CHAT:
             onMessage(msg)
+            if (msg.senderId !== useAuthStore.getState().userId) {
+              messageService.markAsDelivered(msg.id!);
+            }
             break
           case MessageType.UPDATE:
             onUpdate(msg)
@@ -113,6 +116,21 @@ class WebSocketService {
             onDelete(msg.id!)
             break
         }
+      }
+    )
+
+    this.subscriptions[`status-${chatId}`] = this.client!.subscribe(
+      `/topic/chat.${chatId}/messages.status`,
+      (frame: IMessage) => {
+       try {
+        console.debug('[WebSocket] Incoming status frame raw:', frame.body);
+        const status = JSON.parse(frame.body) as MessageStatus;
+
+        console.debug('[WebSocket] Parsed status update:', status);
+        onUpdate(status);
+      } catch (error) {
+        console.error('[WebSocket] Failed to parse status update frame:', error, frame.body);
+      }
       }
     )
   }

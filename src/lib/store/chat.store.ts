@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Chat, ChatMessage, MessageType } from '@/types/chat';
+import { Chat, ChatMessage, MessageStatus, MessageType } from '@/types/chat';
 
 interface ChatStore {
   chats: Chat[];
@@ -31,6 +31,8 @@ interface ChatStore {
     content: string;
     chatId: number;
   } | null) => void;
+  updateMessageStatus: (chatId: number, status: MessageStatus) => void;
+
 }
 
 const initialState: ChatStore = {
@@ -51,7 +53,8 @@ const initialState: ChatStore = {
     setLoadingState: () => {},
     setActiveChat: () => {},
     removeChat: () => {},
-    setEditingMessage: () => {}
+    setEditingMessage: () => {},
+    updateMessageStatus: () => {}
 };
 
 
@@ -157,5 +160,63 @@ export const useChatStore = create<ChatStore>((set) => ({
       Object.entries(state.messages).filter(([key]) => Number(key) !== chatId)
     ),
   })),
-  setEditingMessage: (message) => set({ editingMessage: message })
+  setEditingMessage: (message) => set({ editingMessage: message }),
+  updateMessageStatus: (chatId, status) => set(state => {
+    const messages = state.messages[chatId] || [];
+    const messageIndex = messages.findIndex(m => m.id === status.messageId);
+
+    if (messageIndex === -1) return {};
+    
+    const updatedMessages = [...messages];
+    const message = { ...updatedMessages[messageIndex] };
+    
+    // Initialize statuses array if it doesn't exist
+    message.statuses = message.statuses || [];
+    
+    // Find existing status for this user
+    const statusIndex = message.statuses.findIndex(s => 
+      s.userId === status.userId
+    );
+    
+    // Create new statuses array
+    const newStatuses = [...message.statuses];
+    
+    if (statusIndex >= 0) {
+      // Update existing status
+      newStatuses[statusIndex] = {
+        ...newStatuses[statusIndex],
+        status: status.status,
+        readAt: status.readAt,
+        deliveredAt: status.deliveredAt
+      };
+    } else {
+      // Add new status
+      newStatuses.push(status);
+    }
+    
+    // Update the message with new statuses
+    updatedMessages[messageIndex] = { 
+      ...message, 
+      statuses: newStatuses 
+    };
+  
+  // Update last message if needed
+  const updatedChats = state.chats.map(chat => {
+    if (chat.id === chatId && chat.lastMessage?.id === status.messageId) {
+      return { 
+        ...chat, 
+        lastMessage: updatedMessages[messageIndex] 
+      };
+    }
+    return chat;
+  });
+  
+  return {
+    messages: { 
+      ...state.messages, 
+      [chatId]: updatedMessages 
+    },
+    chats: updatedChats
+  };
+})
 }));

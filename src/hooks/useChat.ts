@@ -4,9 +4,10 @@ import { useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from './useAuth'
 import { chatService } from '@/services/chatService'
 import { websocketService } from '@/services/websocketService'
-import { MessageType, ChatMessage } from '@/types/chat'
+import { MessageType, ChatMessage, MessageStatusType } from '@/types/chat'
 import { useChatStore } from '@/lib/store/chat.store'
 import { MAX_FILE_SIZE_LABEL } from '@/constants/file'
+import { messageService } from '@/services/messageService'
 
 export function useChat(chatId?: number) {
   const { auth } = useAuth()
@@ -21,6 +22,7 @@ export function useChat(chatId?: number) {
     chats,
     loadingStates,
     removeChat,
+    updateMessageStatus
   } = useChatStore()
 
   const emptyArr: ChatMessage[] = useMemo(() => [], [])
@@ -90,9 +92,27 @@ export function useChat(chatId?: number) {
       websocketService.subscribeToChat(
         chatId,
         // new message
-        msg => { if (msg.type === MessageType.CHAT)   addMessage(chatId, msg) },
+        msg => { 
+          if (msg.type === MessageType.CHAT) {
+            addMessage(chatId, msg);
+            // Mark as delivered if not our own message
+            if (msg.senderId !== auth.userId) {
+              messageService.markAsDelivered(msg.id!);
+            }
+          }
+        },
         // updated message
-        msg => { if (msg.type === MessageType.UPDATE) updateMessage(chatId, msg.id!, msg.content!) },
+        update => {
+          if ('content' in update) {
+            // Message update
+            if (update.type === MessageType.UPDATE) {
+              updateMessage(chatId, update.id!, update.content!);
+            }
+          } else {
+            // Status update
+            updateMessageStatus(chatId, update);
+          }
+        },
         // deleted message
         id  => deleteMessage(chatId, id)
       )
@@ -108,7 +128,22 @@ export function useChat(chatId?: number) {
     updateMessage,
     deleteMessage,
     setLoadingState,
+    updateMessageStatus
   ])
+
+  // Add useEffect to mark messages as read
+  useEffect(() => {
+    if (!chatId || !messages.length) return;
+    
+    const unreadMessages = messages.filter(
+      m => m.senderId !== auth.userId && 
+            !m.statuses?.some(s => s.userId === auth.userId && s.status === MessageStatusType.READ)
+    );
+    
+    unreadMessages.forEach(msg => {
+      messageService.markAsRead(msg.id!);
+    });
+  }, [messages, chatId, auth.userId]);
 
   const sendMessage = async (content: string, attachments?: File[]) => {
     if (!chatId) return

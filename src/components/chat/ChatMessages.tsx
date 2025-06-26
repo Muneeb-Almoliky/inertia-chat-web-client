@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useChat } from "@/hooks/useChat"
 import { format } from "date-fns"
-import { Loader2, FileText, Image, File, Video, Music, Download, Mic, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { Loader2, FileText, Image, File, Video, Music, Download, Mic, MoreVertical, Pencil, Trash2, Check, CheckCheck } from "lucide-react"
 import { useAuth } from "@/hooks"
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Attachment, AttachmentType } from "@/types/chat"
+import { Attachment, AttachmentType, ChatType, MessageStatusType } from "@/types/chat"
 import { getApiBaseUrl } from "@/utils/api"
 import { Button } from "@/components/ui/button"
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
@@ -85,16 +85,22 @@ const getImageFit = (count: number) => {
   return count === 1 ? "contain" : "cover";
 }
 
+const isSingleEmoji = (content: string) => {
+  const trimmed = content.trim();
+  const div = document.createElement('div');
+  div.innerHTML = parseEmoji(trimmed);
+  const emojiElements = div.getElementsByClassName('emoji');
+  return emojiElements.length === 1 && div.textContent?.trim() === '';
+};
+
 export function ChatMessages({ conversationId }: ChatMessagesProps) {
   const { auth } = useAuth()
   const { messages, loading, chatType } = useChat(Number(conversationId))
-  // const { updateMessage: updateStoreMessage, deleteMessage: deleteStoreMessage } = useChatStore()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(true);
-  // const [editingMessage, setEditingMessage] = useState<{ id: number; content: string } | null>(null);
-const { 
+  const { 
     editingMessage, 
     setEditingMessage,
     updateMessage: updateStoreMessage,
@@ -103,6 +109,7 @@ const {
   } = useChatStore();
   const [messageToDelete, setMessageToDelete] = useState<number | null>(null);
 
+  // Track scroll activity to determine if user is actively scrolling
   useScrollActivity(containerRef, () => {
     setIsScrolling(false);
   }, 500);
@@ -119,6 +126,7 @@ const {
     }
   }, []);
 
+  // Scroll to bottom when messages change
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
@@ -127,22 +135,13 @@ const {
     scrollToBottom()
   }, [messages])
 
-  // const handleEditMessage = (messageId: number, content: string) => {
-  //   setEditingMessage(messageId, content);
-  // };
-
-   const handleEditMessage = (messageId: number, content: string) => {
+  const handleEditMessage = (messageId: number, content: string) => {
     setEditingMessage({
       id: messageId,
       content,
       chatId: Number(conversationId)
     });
   };
-
-  const handleCancelEdit = () => {
-    setEditingMessage(null);
-  };
-
 
   const handleDownload = async (url: string, fileName: string) => {
     try {
@@ -294,14 +293,6 @@ const {
     );
   };
 
-  const isSingleEmoji = (content: string) => {
-    const trimmed = content.trim();
-    const div = document.createElement('div');
-    div.innerHTML = parseEmoji(trimmed);
-    const emojiElements = div.getElementsByClassName('emoji');
-    return emojiElements.length === 1 && div.textContent?.trim() === '';
-  };
-
   const handleUpdateMessage = async (messageId: number, content: string) => {
     try {
       await messageService.updateMessage(messageId, content);
@@ -312,8 +303,6 @@ const {
       toast.error("Failed to update message");
     }
   };
-
-  
 
   const handleDeleteMessage = async (messageId: number) => {
     try {
@@ -327,6 +316,7 @@ const {
     }
   };
 
+  // Loading state
   if (loadingStates.messagesLoad && !editingMessage) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -335,6 +325,7 @@ const {
     )
   }
 
+  // Empty state
   if (messages.length === 0) {
     return (
       <div className="p-4 text-center text-muted-foreground">
@@ -343,7 +334,7 @@ const {
     )
   }
 
-  // Sort messages by date to ensure proper date header grouping
+  // Sort messages by date
   const sortedMessages = [...messages].sort((a, b) => {
     const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -371,7 +362,6 @@ const {
           const isSingleEmojiMessage = hasContent && isSingleEmoji(message.content);
           const isEditing = editingMessage?.id === message.id && 
                                     editingMessage?.chatId === Number(conversationId);
-          // Only show date header for the first message of each day
           const showDateHeader = i === 0 || (
             message.createdAt && 
             filteredMessages[i - 1].createdAt &&
@@ -395,6 +385,7 @@ const {
             }
           };
 
+          // System messages (join/leave notifications)
           if (message.type !== "CHAT") {
             return (
               <div key={`${message.id ?? 'msg'}-${i}`} className="flex justify-center">
@@ -448,6 +439,98 @@ const {
                           {format(new Date(message.createdAt), "h:mm a")}
                         </span>
                       )}
+                      {isCurrentUser && message.statuses && (
+                        <div className="ml-1 flex items-center gap-0.5">
+                          {/* Private Chat Status */}
+                          {chatType === ChatType.INDIVIDUAL && (
+                            <>
+                              {message.statuses.some(s => 
+                                s.userId !== auth.userId && 
+                                s.status === MessageStatusType.READ
+                              ) ? (
+                                <CheckCheck className="h-3 w-3 text-blue-500" />
+                              ) : message.statuses.some(s => 
+                                s.userId !== auth.userId && 
+                                s.status === MessageStatusType.DELIVERED
+                              ) ? (
+                                <CheckCheck className="h-3 w-3 text-muted-foreground" />
+                              ) : (
+                                <Check className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </>
+                          )}
+                          
+                          {/* Group Chat Status */}
+                          {chatType === ChatType.GROUP && (
+                            <>
+                              {(() => {
+                                // Filter out current user's status
+                                const otherStatuses = message.statuses.filter(
+                                  s => s.userId !== auth.userId
+                                );
+                                
+                                const readBy = otherStatuses.filter(
+                                  s => s.status === MessageStatusType.READ
+                                );
+                                
+                                const deliveredBy = otherStatuses.filter(
+                                  s => s.status === MessageStatusType.DELIVERED
+                                );
+                                
+                                // All recipients have read
+                                if (readBy.length === otherStatuses.length && otherStatuses.length > 0) {
+                                  return (
+                                    <>
+                                      <CheckCheck className="h-3 w-3 text-blue-500" />
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {readBy.length}
+                                      </span>
+                                    </>
+                                  );
+                                }
+                                // Some have read
+                                else if (readBy.length > 0) {
+                                  return (
+                                    <>
+                                      <CheckCheck className="h-3 w-3 text-muted-foreground" />
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {readBy.length}
+                                      </span>
+                                    </>
+                                  );
+                                }
+                                // All delivered but none read
+                                else if (deliveredBy.length === otherStatuses.length && otherStatuses.length > 0) {
+                                  return (
+                                    <>
+                                      <CheckCheck className="h-3 w-3 text-muted-foreground" />
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {deliveredBy.length}
+                                      </span>
+                                    </>
+                                  );
+                                }
+                                // Some delivered
+                                else if (deliveredBy.length > 0) {
+                                  return (
+                                    <>
+                                      <Check className="h-3 w-3 text-muted-foreground" />
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {deliveredBy.length}
+                                      </span>
+                                    </>
+                                  );
+                                }
+                                // Sent but not delivered to anyone
+                                else {
+                                  return <Check className="h-3 w-3 text-muted-foreground" />;
+                                }
+                              })()}
+                            </>
+                          )}
+                        </div>
+                      )}
+
                       {isCurrentUser && message.id && !isEditing && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -491,6 +574,7 @@ const {
                       {renderAttachments(message.attachments!, isCurrentUser)}
                     </div>
                   )}
+                  
                   {hasContent && (
                     <div
                       className={cn(

@@ -31,6 +31,17 @@ export const messageService = {
     }
   },
 
+  markAsDelivered: async (messageId: number): Promise<void> => {
+    try {
+      await axiosInstance.post(`/messages/${messageId}/delivered`)
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message || 'Failed to mark message as delivered')
+      }
+      throw error
+    }
+  },
+
   markAsRead: async (messageId: number): Promise<void> => {
     try {
       await axiosInstance.post(`/messages/${messageId}/read`)

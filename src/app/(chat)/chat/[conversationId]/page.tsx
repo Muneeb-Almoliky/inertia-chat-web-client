@@ -39,7 +39,7 @@ function ConversationPage() {
   const { auth } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([])
   const [otherUser, setOtherUser] = useState<{ name: string; status: UserStatus; profilePicture?: string | null; lastSeen: string } | null>(null)
-  const { editingMessage, setEditingMessage } = useChatStore();
+  const { editingMessage, setEditingMessage, messages } = useChatStore();
 
   const handleUpdateMessage = async (messageId: number, content: string) => {
     try {
@@ -92,6 +92,30 @@ function ConversationPage() {
       clearInterval(interval);
     };
   }, [conversationId, auth.userId]);
+
+   // Add scroll-based read detection
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const isAtBottom = 
+        container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+      
+      if (isAtBottom) {
+        // Mark messages as read when scrolled to bottom
+        Object.values(messages).flat().forEach(msg => {
+          if (msg.senderId !== auth.userId && 
+              !msg.statuses?.some(s => s.userId === auth.userId && s.status === 'READ')) {
+            messageService.markAsRead(msg.id!);
+          }
+        });
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [messages, auth.userId]);
 
   const handleMessageSent = () => {
     messagesContainerRef.current?.scrollTo({

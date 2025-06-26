@@ -9,6 +9,13 @@ export enum MessageType {
   LEAVE = 'LEAVE',
   UPDATE = "UPDATE",
   DELETE = "DELETE",
+  STATUS = 'STATUS',
+}
+
+export enum MessageStatusType {
+  SENT = 'SENT',
+  DELIVERED = 'DELIVERED',
+  READ = 'READ',
 }
 
 export enum AttachmentType {
@@ -38,6 +45,15 @@ export interface ChatMessage {
   createdAt?: string
   type: MessageType
   attachments?: Attachment[]
+  statuses: MessageStatus[]
+}
+
+export interface MessageStatus {
+  messageId: number
+  userId: number
+  status: MessageStatusType
+  deliveredAt?: string
+  readAt?: string
 }
 
 export interface Chat {
