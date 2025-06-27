@@ -212,7 +212,9 @@ export function ConversationList({ search }: ConversationListProps) {
                 : "hover:bg-gray-100"
             )}
           >
-            <button
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => router.push(`/chat/${chat.id}`)}
               className="flex items-center gap-3 flex-1 min-w-0"
             >
@@ -313,7 +315,7 @@ export function ConversationList({ search }: ConversationListProps) {
                   </div>
                 </div>
               </div>
-            </button>
+            </div>
           </div>
         )
       })}

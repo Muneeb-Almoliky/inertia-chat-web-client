@@ -1,28 +1,16 @@
 'use client';
 
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useChat } from "@/hooks/useChat"
-import { format } from "date-fns"
-import { Loader2, FileText, Image, File, Video, Music, Download, Mic, MoreVertical, Pencil, Trash2, Check, CheckCheck } from "lucide-react"
-import { useAuth } from "@/hooks"
-import { Fragment, useEffect, useRef, useState } from "react";
-import { Attachment, AttachmentType, ChatType, MessageStatusType } from "@/types/chat"
-import { getApiBaseUrl } from "@/utils/api"
-import { Button } from "@/components/ui/button"
-import { VoiceMessagePlayer } from "./VoiceMessagePlayer"
-import { useScrollActivity } from "@/hooks"
-import { isSameDay } from "@/utils/date"
-import { parseEmoji } from "@/utils/emoji";
-import { messageService } from "@/services/messageService"
-import { toast } from "sonner"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { useChat } from "@/hooks/useChat";
+import { format } from "date-fns";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks";
+import { Fragment, useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useScrollActivity } from "@/hooks";
+import { isSameDay } from "@/utils/date";
+import { messageService } from "@/services/messageService";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,72 +20,19 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { useChatStore } from "@/lib/store/chat.store"
+} from "@/components/ui/alert-dialog";
+import { useChatStore } from "@/lib/store/chat.store";
+import { ChatMessage } from "./ChatMessage";
 
-interface ChatMessagesProps {
-  conversationId: string
-}
-
-const getAttachmentIcon = (type: AttachmentType) => {
-  switch (type) {
-    case AttachmentType.IMAGE:
-      return <Image className="h-4 w-4 text-blue-500" />;
-    case AttachmentType.VIDEO:
-      return <Video className="h-4 w-4 text-purple-500" />;
-    case AttachmentType.AUDIO:
-      return <Music className="h-4 w-4 text-green-500" />;
-    case AttachmentType.VOICE:
-      return <Mic className="h-4 w-4 text-green-500" />;
-    case AttachmentType.DOCUMENT:
-      return <FileText className="h-4 w-4 text-red-500" />;
-    default:
-      return <File className="h-4 w-4 text-gray-500" />;
-  }
-}
-
-const getGridClass = (count: number) => {
-  switch (count) {
-    case 1:
-      return "grid-cols-1";
-    case 2:
-      return "grid-cols-2";
-    case 3:
-      return "grid-cols-2";
-    case 4:
-      return "grid-cols-2";
-    default:
-      return "grid-cols-2 sm:grid-cols-3";
-  }
-}
-
-const getImageClass = (count: number, index: number) => {
-  if (count === 1) {
-    return "max-w-[280px] sm:max-w-md max-h-[280px] sm:max-h-96";
-  }
-  if (count === 3 && index === 0) {
-    return "row-span-2";
-  }
-  return "";
-}
-
-const getImageFit = (count: number) => {
-  return count === 1 ? "contain" : "cover";
-}
-
-const isSingleEmoji = (content: string) => {
-  const trimmed = content.trim();
-  const div = document.createElement('div');
-  div.innerHTML = parseEmoji(trimmed);
-  const emojiElements = div.getElementsByClassName('emoji');
-  return emojiElements.length === 1 && div.textContent?.trim() === '';
+type ChatMessagesProps = {
+  conversationId: string;
 };
 
 export function ChatMessages({ conversationId }: ChatMessagesProps) {
-  const { auth } = useAuth()
-  const { messages, loading, chatType } = useChat(Number(conversationId))
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const { auth } = useAuth();
+  const { messages, loading, chatType } = useChat(Number(conversationId));
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(true);
   const { 
@@ -114,9 +49,9 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
     setIsScrolling(false);
   }, 500);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     setIsScrolling(true);
-  };
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -124,176 +59,26 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
       container.addEventListener('scroll', handleScroll, { passive: true });
       return () => container.removeEventListener('scroll', handleScroll);
     }
-  }, []);
+  }, [handleScroll]);
 
   // Scroll to bottom when messages change
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
-  const handleEditMessage = (messageId: number, content: string) => {
+  const handleEditMessage = useCallback((messageId: number, content: string) => {
     setEditingMessage({
       id: messageId,
       content,
       chatId: Number(conversationId)
     });
-  };
+  }, [conversationId, setEditingMessage]);
 
-  const handleDownload = async (url: string, fileName: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error('Error downloading file:', error);
-    }
-  };
-
-  const renderAttachments = (attachments: Attachment[], isCurrentUser: boolean) => {
-    const images = attachments.filter(att => att.type === AttachmentType.IMAGE);
-    const voiceMessages = attachments.filter(att => att.type === AttachmentType.VOICE);
-    const otherFiles = attachments.filter(att => 
-      att.type !== AttachmentType.IMAGE && att.type !== AttachmentType.VOICE
-    );
-
-    return (
-      <div className="flex flex-col gap-1.5 sm:gap-2">
-        {images.length > 0 && (
-          <div className={cn(
-            "grid gap-1 sm:gap-1.5",
-            getGridClass(images.length)
-          )}>
-            {images.map((att, idx) => {
-              const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
-              return (
-                <div 
-                  key={att.id}
-                  className={cn(
-                    "relative overflow-hidden rounded-md border transition-colors duration-200 group cursor-pointer",
-                    isCurrentUser ? "border-white/10" : "border-border",
-                    images.length === 1 ? "flex justify-center" : "aspect-square",
-                    getImageClass(images.length, idx)
-                  )}
-                  onClick={() => window.open(`${getApiBaseUrl()}${att.url}`, '_blank')}
-                >
-                  <div className="block h-full w-full">
-                    <img
-                      src={fullUrl}
-                      alt={att.fileName}
-                      className={cn(
-                        "h-full w-full transition-transform duration-300 group-hover:scale-105",
-                        images.length === 1 ? "object-contain" : "object-cover"
-                      )}
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="size-7 sm:size-8 rounded-full cursor-pointer hover:bg-background/80"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(fullUrl, att.fileName);
-                      }}
-                    >
-                      <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {voiceMessages.length > 0 && (
-          <div className="flex flex-col gap-1.5 sm:gap-2">
-            {voiceMessages.map((att) => {
-              const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
-              const audioId = `audio-${att.id}`;
-              return (
-                <div 
-                  key={att.id}
-                  className={cn(
-                    "rounded-md overflow-hidden border transition-colors duration-200",
-                    isCurrentUser ? "border-white/10" : "border-border"
-                  )}
-                >
-                  <div className="p-1.5 sm:p-2">
-                    <VoiceMessagePlayer
-                      url={fullUrl}
-                      duration={att.duration || 0}
-                      onPlay={() => setPlayingAudio(audioId)}
-                      onPause={() => setPlayingAudio(null)}
-                      isCurrentUser={isCurrentUser}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {otherFiles.length > 0 && (
-          <div className="flex flex-col gap-1">
-            {otherFiles.map((att) => {
-              const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
-              return (
-                <div 
-                  key={att.id}
-                  className={cn(
-                    "rounded-md overflow-hidden border transition-colors duration-200 group cursor-pointer",
-                    isCurrentUser ? "border-white/10" : "border-border"
-                  )}
-                  onClick={() => window.open(`${getApiBaseUrl()}${att.url}`, '_blank')}
-                >
-                  <div className="flex items-center gap-2 p-1.5 sm:p-2">
-                    <div className="flex-1 flex items-center gap-2 transition-colors rounded-md p-1 sm:p-1.5">
-                      <div className="flex-shrink-0">
-                        {getAttachmentIcon(att.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs sm:text-sm font-medium break-all">
-                          {att.fileName}
-                        </div>
-                        <div className="text-[10px] sm:text-xs opacity-70">
-                          {att.type.toLowerCase()}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className={cn(
-                        "size-7 sm:size-8 rounded-full cursor-pointer",
-                        isCurrentUser ? "hover:bg-white/10 hover:text-white" : "hover:bg-border"
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(fullUrl, att.fileName);
-                      }}
-                    >
-                      <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const handleUpdateMessage = async (messageId: number, content: string) => {
+  const handleUpdateMessage = useCallback(async (messageId: number, content: string) => {
     try {
       await messageService.updateMessage(messageId, content);
       updateStoreMessage(Number(conversationId), messageId, content);
@@ -302,9 +87,9 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
     } catch (error) {
       toast.error("Failed to update message");
     }
-  };
+  }, [conversationId, setEditingMessage, updateStoreMessage]);
 
-  const handleDeleteMessage = async (messageId: number) => {
+  const handleDeleteMessage = useCallback(async (messageId: number) => {
     try {
       await messageService.deleteMessage(messageId);
       deleteStoreMessage(Number(conversationId), messageId);
@@ -314,32 +99,46 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
     } finally {
       setMessageToDelete(null);
     }
-  };
+  }, [conversationId, deleteStoreMessage]);
 
-  // Loading state
+  // Sort messages by date
+  const sortedMessages = useMemo(() => {
+    return [...messages].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateA - dateB;
+    });
+  }, [messages]);
+
+  const getDateHeader = useCallback((date: Date) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return format(date, 'MMMM d, yyyy');
+    }
+  }, []);
+
   if (loadingStates.messagesLoad && !editingMessage) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
-    )
+    );
   }
 
-  // Empty state
   if (messages.length === 0) {
     return (
       <div className="p-4 text-center text-muted-foreground">
         No messages yet.
       </div>
-    )
+    );
   }
-
-  // Sort messages by date
-  const sortedMessages = [...messages].sort((a, b) => {
-    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return dateA - dateB;
-  });
 
   return (
     <div 
@@ -356,12 +155,9 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
           );
         })
         .map((message, i, filteredMessages) => {
-          const isCurrentUser = message.senderId === auth.userId
-          const hasAttachments = Array.isArray(message.attachments) && message.attachments.length > 0;
-          const hasContent = message?.content && message?.content.trim().length > 0;
-          const isSingleEmojiMessage = hasContent && isSingleEmoji(message.content);
+          const isCurrentUser = message.senderId === auth.userId;
           const isEditing = editingMessage?.id === message.id && 
-                                    editingMessage?.chatId === Number(conversationId);
+            editingMessage?.chatId === Number(conversationId);
           const showDateHeader = i === 0 || (
             message.createdAt && 
             filteredMessages[i - 1].createdAt &&
@@ -370,31 +166,6 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
               new Date(filteredMessages[i - 1].createdAt || '')
             )
           );
-
-          const getDateHeader = (date: Date) => {
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-
-            if (date.toDateString() === today.toDateString()) {
-              return 'Today';
-            } else if (date.toDateString() === yesterday.toDateString()) {
-              return 'Yesterday';
-            } else {
-              return format(date, 'MMMM d, yyyy');
-            }
-          };
-
-          // System messages (join/leave notifications)
-          if (message.type !== "CHAT") {
-            return (
-              <div key={`${message.id ?? 'msg'}-${i}`} className="flex justify-center">
-                <span className="text-xs sm:text-xs md:text-sm text-muted-foreground bg-muted px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 rounded-full">
-                  {message.content}
-                </span>
-              </div>
-            )
-          }
 
           return (
             <Fragment key={`${message.id ?? 'msg'}-${i}`}>
@@ -410,198 +181,19 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
                   </span>
                 </div>
               )}
-              <div className={cn(
-                "flex gap-1.5 sm:gap-2 md:gap-3 group/message",
-                isCurrentUser && "flex-row-reverse"
-              )}>
-                {chatType === "GROUP" && (
-                  <Avatar className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 flex-shrink-0">
-                    <AvatarImage src={`https://avatar.vercel.sh/${message.senderName}.png`} />
-                    <AvatarFallback>
-                      {message.senderName.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                <div className={cn(
-                  "flex flex-col gap-0.5 sm:gap-1 relative", 
-                  isCurrentUser ? "items-end" : "items-start",
-                  "max-w-[75%] sm:max-w-[70%] md:max-w-[65%]"
-                )}>
-                  <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
-                    {chatType === "GROUP" && (
-                      <span className="text-xs sm:text-xs md:text-sm font-medium">
-                        {message.senderName}
-                      </span>
-                    )}
-                    <div className="flex items-center gap-0.5 sm:gap-1">
-                      {message.createdAt && (
-                        <span className="text-xs sm:text-[10px] md:text-xs text-muted-foreground">
-                          {format(new Date(message.createdAt), "h:mm a")}
-                        </span>
-                      )}
-                      {isCurrentUser && message.statuses && (
-                        <div className="ml-1 flex items-center gap-0.5">
-                          {/* Private Chat Status */}
-                          {chatType === ChatType.INDIVIDUAL && (
-                            <>
-                              {message.statuses.some(s => 
-                                s.userId !== auth.userId && 
-                                s.status === MessageStatusType.READ
-                              ) ? (
-                                <CheckCheck className="h-3 w-3 text-blue-500" />
-                              ) : message.statuses.some(s => 
-                                s.userId !== auth.userId && 
-                                s.status === MessageStatusType.DELIVERED
-                              ) ? (
-                                <CheckCheck className="h-3 w-3 text-muted-foreground" />
-                              ) : (
-                                <Check className="h-3 w-3 text-muted-foreground" />
-                              )}
-                            </>
-                          )}
-                          
-                          {/* Group Chat Status */}
-                          {chatType === ChatType.GROUP && (
-                            <>
-                              {(() => {
-                                // Filter out current user's status
-                                const otherStatuses = message.statuses.filter(
-                                  s => s.userId !== auth.userId
-                                );
-                                
-                                const readBy = otherStatuses.filter(
-                                  s => s.status === MessageStatusType.READ
-                                );
-                                
-                                const deliveredBy = otherStatuses.filter(
-                                  s => s.status === MessageStatusType.DELIVERED
-                                );
-                                
-                                // All recipients have read
-                                if (readBy.length === otherStatuses.length && otherStatuses.length > 0) {
-                                  return (
-                                    <>
-                                      <CheckCheck className="h-3 w-3 text-blue-500" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {readBy.length}
-                                      </span>
-                                    </>
-                                  );
-                                }
-                                // Some have read
-                                else if (readBy.length > 0) {
-                                  return (
-                                    <>
-                                      <CheckCheck className="h-3 w-3 text-muted-foreground" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {readBy.length}
-                                      </span>
-                                    </>
-                                  );
-                                }
-                                // All delivered but none read
-                                else if (deliveredBy.length === otherStatuses.length && otherStatuses.length > 0) {
-                                  return (
-                                    <>
-                                      <CheckCheck className="h-3 w-3 text-muted-foreground" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {deliveredBy.length}
-                                      </span>
-                                    </>
-                                  );
-                                }
-                                // Some delivered
-                                else if (deliveredBy.length > 0) {
-                                  return (
-                                    <>
-                                      <Check className="h-3 w-3 text-muted-foreground" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {deliveredBy.length}
-                                      </span>
-                                    </>
-                                  );
-                                }
-                                // Sent but not delivered to anyone
-                                else {
-                                  return <Check className="h-3 w-3 text-muted-foreground" />;
-                                }
-                              })()}
-                            </>
-                          )}
-                        </div>
-                      )}
-
-                      {isCurrentUser && message.id && !isEditing && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 opacity-0 group-hover/message:opacity-100 transition-opacity"
-                            >
-                              <MoreVertical className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align={isCurrentUser ? "end" : "start"} className="min-w-[100px]">
-                            <DropdownMenuItem
-                              onClick={() => handleEditMessage(message.id!, message.content)}
-                              className="text-xs sm:text-xs md:text-sm"
-                            >
-                              <Pencil className="mr-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onClick={() => setMessageToDelete(message.id!)}
-                              className="text-xs sm:text-xs md:text-sm"
-                            >
-                              <Trash2 className="mr-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </div>
-                  </div>
-                
-                  {hasAttachments && (
-                    <div
-                      className={cn(
-                        "rounded-lg p-1 sm:p-1.5 md:p-2 w-full",
-                        isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
-                      )}
-                    >
-                      {renderAttachments(message.attachments!, isCurrentUser)}
-                    </div>
-                  )}
-                  
-                  {hasContent && (
-                    <div
-                      className={cn(
-                        "rounded-lg p-1.5 sm:p-2 md:p-2.5 text-sm sm:text-sm md:text-base",
-                        "break-all whitespace-pre-wrap overflow-hidden",
-                        isSingleEmojiMessage 
-                          ? "!p-0"
-                          : isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "[&_img.emoji]:inline-block [&_img.emoji]:align-[-0.3em] [&_img.emoji]:my-0 [&_img.emoji]:mx-[0.1em]",
-                          isSingleEmojiMessage 
-                            ? "[&_img.emoji]:size-[3em] sm:[&_img.emoji]:size-[4em] md:[&_img.emoji]:size-[5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
-                            : "[&_img.emoji]:size-[1em] sm:[&_img.emoji]:size-[1.1em] md:[&_img.emoji]:size-[1.2em]"
-                        )}
-                        dangerouslySetInnerHTML={{
-                          __html: parseEmoji(message.content),
-                        }}
-                      />
-                    </div>
-                  )}                  
-                </div>
-              </div>
+              <ChatMessage
+                message={message}
+                isCurrentUser={isCurrentUser}
+                chatType={chatType}
+                currentUserId={auth.userId}
+                isEditing={isEditing}
+                onEditMessage={handleEditMessage}
+                setMessageToDelete={setMessageToDelete}
+                playingAudioId={playingAudio}
+                setPlayingAudio={setPlayingAudio}
+              />
             </Fragment>
-          )
+          );
         })}
       <div ref={messagesEndRef} />
       <AlertDialog open={messageToDelete !== null} onOpenChange={() => setMessageToDelete(null)}>
@@ -624,5 +216,5 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

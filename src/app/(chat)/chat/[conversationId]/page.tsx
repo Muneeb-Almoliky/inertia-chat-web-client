@@ -44,7 +44,6 @@ function ConversationPage() {
   const handleUpdateMessage = async (messageId: number, content: string) => {
     try {
       await messageService.updateMessage(messageId, content);
-      // ... update in store ...
       toast.success("Message updated successfully");
     } catch (error) {
       toast.error("Failed to update message");
