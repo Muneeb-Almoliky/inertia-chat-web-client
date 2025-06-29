@@ -5,7 +5,6 @@ import {
   FileText, Image, File, Video, Music, Download, Mic, MoreVertical, Pencil, Trash2, Check, CheckCheck 
 } from "lucide-react";
 import { Attachment, AttachmentType, ChatType, MessageStatusType } from "@/types/chat";
-import { getApiBaseUrl } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { parseEmoji } from "@/utils/emoji";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { memo, useCallback, useMemo } from "react";
+import { resolveAttachmentUrl } from "@/utils/resolveAttachmentUrl";
 import Avatar from "./Avatar";
 
 // Memoized Private Message Status Component
@@ -189,7 +189,7 @@ export const ChatMessage = memo(({
             getGridClass(images.length)
           )}>
             {images.map((att, idx) => {
-              const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
+              const fullUrl = resolveAttachmentUrl(att.url);
               return (
                 <div 
                   key={att.id}
@@ -199,7 +199,7 @@ export const ChatMessage = memo(({
                     images.length === 1 ? "flex justify-center" : "aspect-square",
                     getImageClass(images.length, idx)
                   )}
-                  onClick={() => window.open(`${getApiBaseUrl()}${att.url}`, '_blank')}
+                  onClick={() => window.open(fullUrl, '_blank')}
                 >
                   <div className="block h-full w-full">
                     <img
@@ -232,7 +232,7 @@ export const ChatMessage = memo(({
         {voiceMessages.length > 0 && (
           <div className="flex flex-col gap-1.5 sm:gap-2">
             {voiceMessages.map((att) => {
-              const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
+              const fullUrl = resolveAttachmentUrl(att.url);
               const audioId = `audio-${att.id}`;
               return (
                 <div 
@@ -259,7 +259,7 @@ export const ChatMessage = memo(({
         {otherFiles.length > 0 && (
           <div className="flex flex-col gap-1">
             {otherFiles.map((att) => {
-              const fullUrl = att.url.startsWith('http') ? att.url : `${getApiBaseUrl()}${att.url}`;
+              const fullUrl = resolveAttachmentUrl(att.url);
               return (
                 <div 
                   key={att.id}
@@ -267,7 +267,7 @@ export const ChatMessage = memo(({
                     "rounded-md overflow-hidden border transition-colors duration-200 group cursor-pointer",
                     isCurrentUser ? "border-white/10" : "border-border"
                   )}
-                  onClick={() => window.open(`${getApiBaseUrl()}${att.url}`, '_blank')}
+                  onClick={() => window.open(fullUrl, '_blank')}
                 >
                   <div className="flex items-center gap-2 p-1.5 sm:p-2">
                     <div className="flex-1 flex items-center gap-2 transition-colors rounded-md p-1 sm:p-1.5">

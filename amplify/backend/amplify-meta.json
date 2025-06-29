@@ -1,0 +1,29 @@
+{
+  "providers": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-inertiachatwebclient-dev-f4ffe-authRole",
+      "UnauthRoleArn": "arn:aws:iam::711387123469:role/amplify-inertiachatwebclient-dev-f4ffe-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::711387123469:role/amplify-inertiachatwebclient-dev-f4ffe-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-inertiachatwebclient-dev-f4ffe-deployment",
+      "UnauthRoleName": "amplify-inertiachatwebclient-dev-f4ffe-unauthRole",
+      "StackName": "amplify-inertiachatwebclient-dev-f4ffe",
+      "StackId": "arn:aws:cloudformation:us-east-1:711387123469:stack/amplify-inertiachatwebclient-dev-f4ffe/e2669700-5401-11f0-922f-12b16823e007",
+      "AmplifyAppId": "d3shx9wwbv2fvo"
+    }
+  },
+  "hosting": {
+    "amplifyhosting": {
+      "service": "amplifyhosting",
+      "providerPlugin": "awscloudformation",
+      "type": "manual",
+      "providerMetadata": {
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-inertiachatwebclient-dev-f4ffe-deployment/amplify-cfn-templates/hosting/amplifyhosting-template.json",
+        "logicalId": "hostingamplifyhosting"
+      },
+      "lastPushTimeStamp": "2025-06-28T09:34:55.546Z",
+      "output": {},
+      "lastPushDirHash": "LSJ1hN/d2Gh1m04FyR+h8w4s4js="
+    }
+  }
+}
