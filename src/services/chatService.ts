@@ -1,5 +1,10 @@
 import axiosInstance from '@/api/axios'
-import type { Chat, ChatMessage } from '@/types/chat'
+import type { 
+  Chat, 
+  ChatMessage, 
+  GroupDetails, 
+  ParticipantRole 
+} from '@/types/chat'
 
 export const chatService = {
   // Find or create a one-to-one chat with another user
@@ -33,19 +38,10 @@ export const chatService = {
       const response = await axiosInstance.get('/chats')
       console.log('[chatService] response:', response)
       const data = response.data as { data: any[] }
-      const rawChats = data.data
-      console.log('Raw chats:', rawChats)
+      const chats = data.data
+      console.log('Raw chats:', chats)
 
-      return rawChats.map((chat: any) => ({
-        id: chat.id,
-        type: chat.type,
-        participants: chat.participants.map((p: any) => ({
-          userId: p.id,
-          name: p.name,
-          profilePicture: p.profilePicture,
-        })),
-        lastMessage: chat.lastMessage,
-      }))
+      return chats
     } catch (error: unknown) {
       console.error('[chatService] failed:', error);
       throw error
@@ -77,5 +73,132 @@ export const chatService = {
       console.error('[chatService] sendMessageWithAttachments error:', error);
       throw error;
     }
-  }
+  },
+
+  // Get group details
+  getGroupDetails: async (chatId: number): Promise<GroupDetails> => {
+    const response = await axiosInstance.get<{ data: GroupDetails }>(`/chats/${chatId}`);
+    return response.data.data; 
+  },
+
+  // Create new group chat
+  createGroupChat: async (data: {
+    name: string;
+    participantIds: number[];
+    avatar?: File | null;
+  }): Promise<GroupDetails> => {
+    const formData = new FormData();
+    
+    // Create DTO structure
+    const dto = {
+      name: data.name,
+      participantIds: data.participantIds
+    };
+    
+    formData.append(
+      'dto', 
+      new Blob([JSON.stringify(dto)], { type: 'application/json' })
+    );
+    
+    if (data.avatar) {
+      formData.append('avatar', data.avatar);
+    }
+
+    const response = await axiosInstance.post<{ data: GroupDetails}>('/chats/group', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    
+    return response.data.data;
+  },
+  
+  // Add participant to group
+  addParticipant: async (chatId: number, userId: number): Promise<void> => {
+    await axiosInstance.post(`/chats/${chatId}/participants/${userId}`);
+  },
+  
+  // Remove participant from group
+  removeParticipant: async (chatId: number, userId: number): Promise<void> => {
+    await axiosInstance.delete(`/chats/${chatId}/participants/${userId}`);
+  },
+
+  // Update participant role (MISSING IN ORIGINAL)
+  updateParticipantRole: async (
+    chatId: number,
+    userId: number,
+    newRole: ParticipantRole
+  ): Promise<void> => {
+    await axiosInstance.patch(
+      `/chats/${chatId}/participants/${userId}/role?newRole=${encodeURIComponent(newRole)}`);
+  },
+
+  // Update group details (name and avatar)
+  updateGroup: async (
+    chatId: number, 
+    updates: { name?: string; avatar?: File }
+  ): Promise<GroupDetails> => {
+    const formData = new FormData();
+    
+    if (updates.name) {
+      formData.append('name', updates.name);
+    }
+    
+    if (updates.avatar) {
+      formData.append('avatar', updates.avatar);
+    }
+    
+    const response = await axiosInstance.patch<{ data: GroupDetails }>(
+      `/chats/${chatId}`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    
+    return response.data.data;
+  },
+
+  // Update group name only (MISSING IN ORIGINAL)
+  updateGroupName: async (
+    chatId: number,
+    newName: string
+  ): Promise<void> => {
+    await axiosInstance.patch(
+      `/chats/${chatId}/name?name=${encodeURIComponent(newName)}`);
+  },
+
+  // Update group avatar only (MISSING IN ORIGINAL)
+  updateGroupAvatar: async (
+    chatId: number,
+    avatarFile: File
+  ): Promise<{ avatarUrl: string }> => {
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+    
+    const response = await axiosInstance.patch<{ data: { avatarUrl: string } }>(
+      `/chats/${chatId}/avatar`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    
+    return response.data.data;
+  },
+
+  // Transfer group ownership (MISSING IN ORIGINAL)
+  transferOwnership: async (
+    chatId: number,
+    newOwnerId: number
+  ): Promise<void> => {
+    await axiosInstance.post(
+      `/chats/${chatId}/transfer-ownership`,
+      { newOwnerId }
+    );
+  },
+  
+  // Leave group
+  leaveGroup: async (chatId: number): Promise<void> => {
+    await axiosInstance.delete(`/chats/${chatId}/leave`);
+  },
+  
+  // Delete group
+  deleteGroup: async (chatId: number): Promise<void> => {
+    await axiosInstance.delete(`/chats/${chatId}`);
+  },
 }

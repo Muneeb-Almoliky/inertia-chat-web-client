@@ -4,7 +4,7 @@ import { useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from './useAuth'
 import { chatService } from '@/services/chatService'
 import { websocketService } from '@/services/websocketService'
-import { MessageType, ChatMessage, MessageStatusType } from '@/types/chat'
+import { MessageType, ChatMessage, MessageStatusType, ChatType } from '@/types/chat'
 import { useChatStore } from '@/lib/store/chat.store'
 import { MAX_FILE_SIZE_LABEL } from '@/constants/file'
 import { messageService } from '@/services/messageService'
@@ -75,6 +75,23 @@ export function useChat(chatId?: number) {
       websocketService.unsubscribeFromChat(chatId)
     }
   }, [chatId, auth.username, setActiveChat])
+
+    const fetchGroupDetails = useCallback(async () => {
+    if (!chatId) return;
+    
+    try {
+      const details = await chatService.getGroupDetails(chatId);
+      // Update store with group details
+    } catch (error) {
+      console.error('Failed to fetch group details:', error);
+    }
+  }, [chatId]);
+
+  useEffect(() => {
+    if (chatType === ChatType.GROUP) {
+      fetchGroupDetails();
+    }
+  }, [chatType, fetchGroupDetails]);
 
   // initial load + live WS events
   useEffect(() => {

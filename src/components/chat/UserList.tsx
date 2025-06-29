@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
-import { Loader2, MoreVertical } from "lucide-react"
+import { Loader2, MoreVertical, Check } from "lucide-react"
 import { toast } from "sonner"
 import { chatService } from "@/services/chatService"
 import { UserStatus } from '@/types/user'
@@ -16,10 +16,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ChatType } from "@/types/chat"
 
 interface UserListProps {
   search: string
+  mode: ChatType.INDIVIDUAL | ChatType.GROUP
   onSelectUser: (user: UserProfile) => void
+  selectedUsers?: UserProfile[]
 }
 
 const statusConfig = {
@@ -28,7 +31,12 @@ const statusConfig = {
   [UserStatus.OFFLINE]: { label: 'Offline', color: 'bg-gray-400' },
 }
 
-export function UserList({ search, onSelectUser }: UserListProps) {
+export function UserList({ 
+  search, 
+  mode,
+  onSelectUser,
+  selectedUsers = []
+}: UserListProps) {
   const router = useRouter()
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +57,13 @@ export function UserList({ search, onSelectUser }: UserListProps) {
   }, [])
 
   const handleUserSelect = async (user: UserProfile) => {
+    // In group mode, just toggle participant selection
+    if (mode === ChatType.GROUP) {
+      onSelectUser(user)
+      return
+    }
+    
+    // In individual mode, start a chat
     try {
       const chatId = await chatService.findOrCreateOneToOneChat(user.id)
       router.push(`/chat/${chatId}`)
@@ -83,59 +98,74 @@ export function UserList({ search, onSelectUser }: UserListProps) {
 
   return (
     <div className="flex flex-col">
-      {filteredUsers.map((user) => (
-        <button
-          key={user.id}
-          onClick={() => handleUserSelect(user)}
-          className={cn(
-            "flex items-center gap-3 px-4 py-3 transition-all duration-200 group relative",
-            "border-b last:border-b-0 border-gray-300",
-            "hover:bg-gray-100"
-          )}
-        >
-          <div className="relative flex-shrink-0">
-            <Avatar
-              path={user.profilePicture}
-              name={user.name}
-            />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    className={cn(
-                      "absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full",
-                      "border-[1.5px] border-white shadow-sm",
-                      statusConfig[user.status].color
-                    )}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="right" align="center" className="text-xs">
-                  {statusConfig[user.status].label}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
-          <div className="flex-1 text-left min-w-0">
-            <div className="flex items-center justify-between gap-2 mb-0.5">
-              <p className="font-medium truncate text-gray-900">{user.name}</p>
-              <span className={cn(
-                "text-[11px] text-gray-500 whitespace-nowrap",
-                user.status === UserStatus.ONLINE ? "text-green-500" : "text-gray-500"
-              )}>
-                {user.status.toLowerCase()}
-              </span>
+      {filteredUsers.map((user) => {
+        const isSelected = selectedUsers.some(u => u.id === user.id)
+        
+        return (
+          <button
+            key={user.id}
+            onClick={() => handleUserSelect(user)}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 transition-all duration-200 group relative",
+              "border-b last:border-b-0 border-gray-300",
+              "hover:bg-gray-100",
+              isSelected && "bg-blue-50"
+            )}
+          >
+            <div className="relative flex-shrink-0">
+              <Avatar
+                path={user.profilePicture}
+                name={user.name}
+              />
+              {mode === ChatType.INDIVIDUAL && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={cn(
+                          "absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full",
+                          "border-[1.5px] border-white shadow-sm",
+                          statusConfig[user.status].color
+                        )}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center" className="text-xs">
+                      {statusConfig[user.status].label}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex-1 min-h-[20px] min-w-0">
-                <span className="text-[13px] text-gray-600 truncate block">
-                  @{user.username}
-                </span>
+
+            <div className="flex-1 text-left min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <p className="font-medium truncate text-gray-900">{user.name}</p>
+                {mode === ChatType.INDIVIDUAL ? (
+                  <span className={cn(
+                    "text-[11px] text-gray-500 whitespace-nowrap",
+                    user.status === UserStatus.ONLINE ? "text-green-500" : "text-gray-500"
+                  )}>
+                    {user.status.toLowerCase()}
+                  </span>
+                ) : (
+                  isSelected && (
+                    <div className="bg-blue-500 rounded-full p-1">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                  )
+                )}
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex-1 min-h-[20px] min-w-0">
+                  <span className="text-[13px] text-gray-600 truncate block">
+                    @{user.username}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        )
+      })}
     </div>
   )
 }

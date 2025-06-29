@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   FileText, Image, File, Video, Music, Download, Mic, MoreVertical, Pencil, Trash2, Check, CheckCheck 
 } from "lucide-react";
@@ -19,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { memo, useCallback, useMemo } from "react";
+import Avatar from "./Avatar";
 
 // Memoized Private Message Status Component
 const PrivateMessageStatus = memo(({ 
@@ -316,13 +316,12 @@ export const ChatMessage = memo(({
       "flex gap-1.5 sm:gap-2 md:gap-3 group/message",
       isCurrentUser && "flex-row-reverse"
     )}>
-      {chatType === ChatType.GROUP && (
-        <Avatar className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 flex-shrink-0">
-          <AvatarImage src={`https://avatar.vercel.sh/${message.senderName}.png`} />
-          <AvatarFallback>
-            {message.senderName.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+      {chatType === ChatType.GROUP && !isCurrentUser && (
+        <Avatar 
+          path={message.senderProfilePicture} 
+          name={message.senderName}
+          className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 flex-shrink-0"
+        />
       )}
       <div className={cn(
         "flex flex-col gap-0.5 sm:gap-1 relative", 
@@ -330,7 +329,7 @@ export const ChatMessage = memo(({
         "max-w-[75%] sm:max-w-[70%] md:max-w-[65%]"
       )}>
         <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
-          {chatType === ChatType.GROUP && (
+          {chatType === ChatType.GROUP && !isCurrentUser && (
             <span className="text-xs sm:text-xs md:text-sm font-medium">
               {message.senderName}
             </span>

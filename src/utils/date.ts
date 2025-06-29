@@ -37,7 +37,7 @@ export const formatMessageDate = (date: Date): string => {
   return dateString;
 };
 
-export const formatLastSeen = (lastSeen: string): string => {
+export const formatLastSeen = (lastSeen: any): string => {
   try {
     const date = new Date(lastSeen);
     if (isNaN(date.getTime())) {

@@ -45,6 +45,11 @@ export function ChatSidebar() {
     }
   }
 
+  const handleGroupCreated = (groupId: number) => {
+    setShowNewChatSidebar(false)
+    router.push(`/chat/${groupId}`)
+  }
+
   if (showProfileSidebar) {
     return <ProfileSidebar onBack={() => setShowProfileSidebar(false)} />
   }
@@ -53,9 +58,10 @@ export function ChatSidebar() {
     return (
       <NewChatSidebar
         onBack={() => setShowNewChatSidebar(false)}
-        onStartChat={() => {
-          setShowNewChatSidebar(false)
-        }}
+        // onStartChat={() => {
+        //   setShowNewChatSidebar(false)
+        // }}
+        onGroupCreated={handleGroupCreated}
       />
     )
   }
@@ -154,7 +160,7 @@ export function ChatSidebar() {
           </div>
         </div>
 
-        <ScrollArea className="flex-1 bg-gray-50">
+        <ScrollArea className="flex-1 overflow-y-auto bg-gray-50">
           <ConversationList search={userSearch} />
         </ScrollArea>
       </div>
