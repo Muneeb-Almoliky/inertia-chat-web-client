@@ -52,6 +52,9 @@ export function ChatHeader({
   const ready =
     (chatType === ChatType.INDIVIDUAL && otherUser) ||
     (chatType === ChatType.GROUP && groupDetails);
+    
+  // Only show actions menu for group chats
+  const showActionsMenu = ready && chatType === ChatType.GROUP;
 
   return (
     <div className="border-b bg-gray-50 flex items-center justify-between h-16 sm:h-18 px-4 sm:px-6 md:px-8 lg:px-10">
@@ -102,7 +105,15 @@ export function ChatHeader({
                   ? otherUser!.name
                   : groupDetails!.name}
               </h2>
-              <span className="text-xs sm:text-sm text-gray-500 truncate">
+              <span 
+                className={cn(
+                  "text-xs sm:text-sm truncate",
+                  chatType === ChatType.INDIVIDUAL && 
+                    otherUser!.status === UserStatus.ONLINE
+                    ? "text-green-600"
+                    : "text-gray-500"
+                )}
+              >
                 {chatType === ChatType.INDIVIDUAL
                   ? otherUser!.status === UserStatus.ONLINE
                     ? "online"
@@ -119,18 +130,16 @@ export function ChatHeader({
         </div>
       </div>
 
-      {ready && (
+      {showActionsMenu && (
         <div className="flex items-center gap-2">
-          {chatType === ChatType.GROUP && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenSettings}
-              aria-label="Group settings"
-            >
-              <Users className="h-5 w-5 text-gray-700" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenSettings}
+            aria-label="Group settings"
+          >
+            <Users className="h-5 w-5 text-gray-700" />
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -144,22 +153,18 @@ export function ChatHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              {chatType === ChatType.GROUP && (
-                <>
-                  <DropdownMenuItem onClick={onOpenSettings}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Group Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={onLeaveGroup}
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Leave Group</span>
-                  </DropdownMenuItem>
-                </>
-              )}
+              <DropdownMenuItem onClick={onOpenSettings}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Group Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={onLeaveGroup}
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Leave Group</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
