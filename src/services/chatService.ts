@@ -13,9 +13,15 @@ export const chatService = {
       // Try to find existing chat
       const response = await axiosInstance.get<{ data: number }>(`/chats/with/${userId}`)
       return response.data.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If not found, create new chat
-      if (error.response?.status === 404) {
+      if (
+        typeof error === 'object' && 
+        error !== null && 
+        'response' in error && 
+        typeof (error as { response?: { status?: number } }).response?.status === 'number' && 
+        (error as { response: { status: number } }).response.status === 404
+      ) {
         const response = await axiosInstance.post<{ data: number }>(`/chats/with/${userId}`)
         return response.data.data
       }
@@ -37,7 +43,7 @@ export const chatService = {
       console.log('[chatService] calling axiosInstance.get')
       const response = await axiosInstance.get('/chats')
       console.log('[chatService] response:', response)
-      const data = response.data as { data: any[] }
+      const data = response.data as { data: Chat[] }
       const chats = data.data
       console.log('Raw chats:', chats)
 
@@ -56,7 +62,7 @@ export const chatService = {
     chatId: number,
     content: string,
     attachments?: File[]
-  ): Promise<any> => {
+  ): Promise<{ data: ChatMessage }> => {
     const formData = new FormData();
     if (content) formData.append('content', content);
     if (attachments && attachments.length > 0) {
@@ -65,7 +71,7 @@ export const chatService = {
       });
     }
     try {
-      const response = await axiosInstance.post(`/chats/${chatId}/messages`, formData, {
+      const response = await axiosInstance.post<{ data: ChatMessage }>(`/chats/${chatId}/messages`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
