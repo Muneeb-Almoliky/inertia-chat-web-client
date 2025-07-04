@@ -45,7 +45,6 @@ export function ChatHeader({
   chatType,
   otherUser,
   groupDetails,
-  showSettings,
   onOpenSettings,
   onLeaveGroup,
 }: ChatHeaderProps) {

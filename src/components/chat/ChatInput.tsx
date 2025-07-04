@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/tooltip"
 import EmojiPicker, { EmojiStyle, Theme, EmojiClickData } from 'emoji-picker-react'
 import { useChat } from "@/hooks/useChat"
-import { parseEmoji } from "@/utils/emoji"
 import { toast } from "sonner"
 import { formatFileSize, getFileType, getFileIcon, isVoiceMessage } from "@/utils/file"
 import { formatTime } from "@/utils/audio"
@@ -29,7 +28,7 @@ interface ChatInputProps {
   onUpdateMessage?: (messageId: number, content: string) => void
   isMainInput?: boolean
 }
-export function ChatInput({ conversationId, onMessageSent, isEditing = false, onUpdateMessage, isMainInput = true }: ChatInputProps) {
+export function ChatInput({ conversationId, onMessageSent, isEditing = false, onUpdateMessage }: ChatInputProps) {
   const { sendMessage } = useChat(Number(conversationId))
   const [message, setMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
@@ -84,7 +83,7 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
       ext: '.png',
       base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/',
       className: 'emoji',
-      attributes: (icon, variant) => {
+      attributes: (icon) => {
         return {
           alt: icon
         }

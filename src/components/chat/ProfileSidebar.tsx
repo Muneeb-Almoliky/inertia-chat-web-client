@@ -40,7 +40,7 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [isMobileOpen, setIsMobileOpen] = useState(true)
+  const [isMobileOpen] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -58,7 +58,7 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
           name: data.name,
           username: data.username
         }))
-      } catch (error) {
+      } catch {
         toast.error('Failed to load profile')
       } finally {
         setLoading(false)
@@ -108,7 +108,7 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
       setSelectedPhoto(null)
       setPhotoPreview(null)
       toast.success('Profile updated successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to update profile')
     } finally {
       setSaving(false)
@@ -121,7 +121,7 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
       await logout()
       router.push('/login')
       toast.success('Profile deleted successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete profile')
     }
   }

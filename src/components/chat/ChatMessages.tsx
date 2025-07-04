@@ -30,7 +30,7 @@ type ChatMessagesProps = {
 
 export function ChatMessages({ conversationId }: ChatMessagesProps) {
   const { auth } = useAuth();
-  const { messages, loading, chatType } = useChat(Number(conversationId));
+  const { messages, chatType } = useChat(Number(conversationId));
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -78,23 +78,12 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
     });
   }, [conversationId, setEditingMessage]);
 
-  const handleUpdateMessage = useCallback(async (messageId: number, content: string) => {
-    try {
-      await messageService.updateMessage(messageId, content);
-      updateStoreMessage(Number(conversationId), messageId, content);
-      setEditingMessage(null);
-      toast.success("Message updated successfully");
-    } catch (error) {
-      toast.error("Failed to update message");
-    }
-  }, [conversationId, setEditingMessage, updateStoreMessage]);
-
   const handleDeleteMessage = useCallback(async (messageId: number) => {
     try {
       await messageService.deleteMessage(messageId);
       deleteStoreMessage(Number(conversationId), messageId);
       toast.success("Message deleted successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete message");
     } finally {
       setMessageToDelete(null);

@@ -111,7 +111,7 @@ export function LoginForm() {
       </CardContent>
       <CardFooter className="flex justify-center">
         <Link href="/signup">
-          <Button variant="link">Don't have an account? Sign up</Button>
+          <Button variant="link">Don&apos;t have an account? Sign up</Button>
         </Link>
       </CardFooter>
     </Card>

@@ -78,13 +78,6 @@ export function useChat(chatId?: number) {
 
     const fetchGroupDetails = useCallback(async () => {
     if (!chatId) return;
-    
-    try {
-      const details = await chatService.getGroupDetails(chatId);
-      // Update store with group details
-    } catch (error) {
-      console.error('Failed to fetch group details:', error);
-    }
   }, [chatId]);
 
   useEffect(() => {

@@ -7,9 +7,8 @@ import { useParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import { chatService } from "@/services/chatService";
 import { useAuth, useChat } from "@/hooks";
-import { cn } from "@/lib/utils";
 import { userService } from "@/services/userService";
-import { UserProfile, UserStatus } from "@/types/user";
+import { UserStatus } from "@/types/user";
 import { useChatStore } from "@/lib/store/chat.store";
 import { messageService } from "@/services/messageService";
 import { toast } from "sonner";
@@ -22,18 +21,11 @@ interface ChatPageParams {
   conversationId: string;
 }
 
-const statusConfig = {
-  [UserStatus.ONLINE]: { label: 'Online', color: 'bg-green-500', bgColor: 'bg-green-100/80', textColor: 'text-green-700' },
-  [UserStatus.AWAY]: { label: 'Away', color: 'bg-yellow-500', bgColor: 'bg-yellow-100/80', textColor: 'text-yellow-700' },
-  [UserStatus.OFFLINE]: { label: 'Offline', color: 'bg-gray-400', bgColor: 'bg-gray-100/80', textColor: 'text-gray-600' },
-}
-
 function ConversationPage() {
   const params = useParams();
   const conversationId = params?.conversationId as ChatPageParams['conversationId'];
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const { auth } = useAuth();
-  const [users, setUsers] = useState<UserProfile[]>([])
   const [otherUser, setOtherUser] = useState<{ 
     name: string; 
     status: UserStatus; 
@@ -74,7 +66,6 @@ function ConversationPage() {
         ]);
         
         if (!isMounted) return;
-        setUsers(usersData);
 
         // Only set otherUser for individual chats
         if (chatType === ChatType.INDIVIDUAL) {
@@ -137,7 +128,7 @@ function ConversationPage() {
     try {
       await messageService.updateMessage(messageId, content);
       toast.success("Message updated successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update message");
     } finally {
       setEditingMessage(null);
@@ -158,7 +149,7 @@ function ConversationPage() {
       await chatService.leaveGroup(Number(conversationId));
       toast.success("You have left the group");
       setShowGroupManagement(false);
-    } catch (error) {
+    } catch {
       toast.error("Failed to leave group");
     }
   };
@@ -169,7 +160,7 @@ function ConversationPage() {
       await chatService.deleteGroup(Number(conversationId));
       toast.success("Group deleted successfully");
       setShowGroupManagement(false);
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete group");
     }
   };
@@ -182,7 +173,7 @@ function ConversationPage() {
       // Refresh group details
       const details = await chatService.getGroupDetails(Number(conversationId));
       setGroupDetails(details);
-    } catch (error) {
+    } catch {
       toast.error("Failed to remove participant");
     }
   };
@@ -199,7 +190,7 @@ const handleRoleChange = async (userId: number, newRole: ParticipantRole) => {
     const details = await chatService.getGroupDetails(Number(conversationId));
     setGroupDetails(details);
     toast.success("Role updated successfully");
-  } catch (error) {
+  } catch {
     toast.error("Failed to update role");
   }
 };

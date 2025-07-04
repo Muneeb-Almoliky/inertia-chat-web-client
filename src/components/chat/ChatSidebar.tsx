@@ -27,7 +27,7 @@ export function ChatSidebar() {
   const [showNewChatSidebar, setShowNewChatSidebar] = useState(false)
   const [showProfileSidebar, setShowProfileSidebar] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const { logout, username } = useAuthStore()
+  const { logout } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
 

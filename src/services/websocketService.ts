@@ -1,6 +1,6 @@
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
-import { ChatMessage, MessageType, MessageStatusType, MessageStatus } from '@/types/chat'
+import { ChatMessage, MessageType, MessageStatus } from '@/types/chat'
 import { useAuthStore } from '@/lib/store/auth.store'
 import { messageService } from './messageService'
 
