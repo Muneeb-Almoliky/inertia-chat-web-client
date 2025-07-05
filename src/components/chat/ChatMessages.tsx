@@ -38,7 +38,6 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
   const { 
     editingMessage, 
     setEditingMessage,
-    updateMessage: updateStoreMessage,
     deleteMessage: deleteStoreMessage,
     loadingStates
   } = useChatStore();

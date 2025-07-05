@@ -8,6 +8,7 @@ import { MessageType, ChatMessage, MessageStatusType, ChatType } from '@/types/c
 import { useChatStore } from '@/lib/store/chat.store'
 import { MAX_FILE_SIZE_LABEL } from '@/constants/file'
 import { messageService } from '@/services/messageService'
+import { ApiErrorResponse } from '@/types/api'
 
 export function useChat(chatId?: number) {
   const { auth } = useAuth()
@@ -160,12 +161,13 @@ export function useChat(chatId?: number) {
     try {
       const res = await chatService.sendMessageWithAttachments(chatId, content, attachments)
       return res
-    } catch (err: any) {
-      console.error('[sendMessage] Error sending message:', err)
-      if (err.response?.data?.errors?.includes('Maximum upload size exceeded')) {
+    } catch (err: unknown) {
+      const error = err as ApiErrorResponse;
+      console.error('[sendMessage] Error sending message:', error)
+      if (error.errors.includes('Maximum upload size exceeded')) {
         throw new Error(`File size too large. Maximum file size is ${MAX_FILE_SIZE_LABEL} per file.`)
       }
-      throw err
+      throw error
     }
   }
 

@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 // import type { User as UserType } from "@/lib/store/auth.store"
+import type { AuthResponse } from "@/lib/schemas/auth"
 
 interface UserProfileProps {
-  user:  any,
+  user: AuthResponse;
   onLogout: () => void
 }
 

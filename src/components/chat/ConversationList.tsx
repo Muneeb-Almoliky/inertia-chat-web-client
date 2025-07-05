@@ -194,7 +194,7 @@ export function ConversationList({ search }: ConversationListProps) {
                 <div className="relative flex-shrink-0">
                   <Avatar
                     path={isGroup ? chat.avatarUrl : other?.profilePicture}
-                    name={isGroup ? chat.name! : other?.name!}
+                    name={isGroup ? (chat.name || 'Group Chat') : (other?.name || 'Unknown User')}
                   />
                   {!isGroup && userStatus && (
                     <TooltipProvider>

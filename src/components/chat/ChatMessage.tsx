@@ -4,7 +4,9 @@ import { cn } from "@/lib/utils";
 import { 
   FileText, Image, File, Video, Music, Download, Mic, MoreVertical, Pencil, Trash2, Check, CheckCheck 
 } from "lucide-react";
-import { Attachment, AttachmentType, ChatType, MessageStatusType } from "@/types/chat";
+import { 
+  Attachment, AttachmentType, ChatType, MessageStatusType, ChatMessage as IChatMessage 
+} from "@/types/chat";
 import { Button } from "@/components/ui/button";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { parseEmoji } from "@/utils/emoji";
@@ -41,6 +43,8 @@ const PrivateMessageStatus = memo(({
     <Check className="h-3 w-3 text-muted-foreground" />
   );
 });
+
+PrivateMessageStatus.displayName = 'PrivateMessageStatus';
 
 // Memoized Group Message Status Component
 const GroupMessageStatus = memo(({ 
@@ -82,6 +86,8 @@ const GroupMessageStatus = memo(({
     </>
   );
 });
+
+GroupMessageStatus.displayName = 'GroupMessageStatus';
 
 
 const getAttachmentIcon = (type: AttachmentType) => {
@@ -135,7 +141,7 @@ const isSingleEmoji = (content: string) => {
 };
 
 interface ChatMessageProps {
-  message: any;
+  message: IChatMessage;
   isCurrentUser: boolean;
   chatType: ChatType | undefined;
   currentUserId: number;
@@ -154,7 +160,6 @@ export const ChatMessage = memo(({
   isEditing,
   onEditMessage,
   setMessageToDelete,
-  playingAudioId,
   setPlayingAudio
 }: ChatMessageProps) => {
   const handleDownload = useCallback(async (url: string, fileName: string) => {
@@ -174,7 +179,9 @@ export const ChatMessage = memo(({
     }
   }, []);
 
-  const renderAttachments = useCallback((attachments: Attachment[], isCurrentUser: boolean) => {
+  const renderAttachments = useCallback((attachments: Attachment[] | undefined, isCurrentUser: boolean) => {
+    if (!attachments) return null;
+    
     const images = attachments.filter(att => att.type === AttachmentType.IMAGE);
     const voiceMessages = attachments.filter(att => att.type === AttachmentType.VOICE);
     const otherFiles = attachments.filter(att => 
@@ -427,3 +434,5 @@ export const ChatMessage = memo(({
     </div>
   );
 });
+
+ChatMessage.displayName = 'ChatMessage';

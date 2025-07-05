@@ -4,6 +4,7 @@ import * as React from "react"
 import { Play, Pause } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import WavesurferPlayer from '@wavesurfer/react'
+import WaveSurfer from 'wavesurfer.js'
 import { getAudioDuration, formatTime } from "@/utils/audio"
 import { cn } from "@/lib/utils"
 
@@ -16,7 +17,7 @@ interface VoiceMessagePlayerProps {
 }
 
 export function VoiceMessagePlayer({ url, duration = 0, isCurrentUser = false, onPlay, onPause }: VoiceMessagePlayerProps) {
-  const [wavesurfer, setWavesurfer] = React.useState<any>(null)
+  const [wavesurfer, setWavesurfer] = React.useState<ReturnType<typeof WaveSurfer.create> | null>(null)
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [currentDuration, setCurrentDuration] = React.useState(duration)
   const [currentTime, setCurrentTime] = React.useState(0)
@@ -31,7 +32,7 @@ export function VoiceMessagePlayer({ url, duration = 0, isCurrentUser = false, o
       })
   }, [url])
 
-  const onReady = (ws: any) => {
+  const onReady = (ws: ReturnType<typeof WaveSurfer.create>) => {
     setWavesurfer(ws)
     setIsPlaying(false)
 

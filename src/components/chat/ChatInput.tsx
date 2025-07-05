@@ -231,10 +231,11 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
       setAttachments([])
       setImagePreviews({})
       onMessageSent?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to send message:", error)
-      if (error.message?.includes('File size too large')) {
-        toast.error(error.message);
+      const err = error as Error;
+      if (err.message?.includes('File size too large')) {
+        toast.error(err.message);
       } else {
         toast.error("Failed to send message. Please try again.");
       }
