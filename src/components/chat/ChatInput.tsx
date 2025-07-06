@@ -722,10 +722,16 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
               "[&::-webkit-scrollbar-track]:bg-transparent",
               "[&::-webkit-scrollbar-thumb]:bg-gray-300/80",
               "[&::-webkit-scrollbar-thumb:hover]:bg-gray-300",
-              "break-all whitespace-pre-wrap overflow-hidden",
+              "whitespace-pre-wrap break-all max-w-full",
+              "[word-break:break-word] [overflow-wrap:break-word]",
               "border border-gray-200",
               isEditing ? "bg-primary/5 border-primary/20 ring-2 ring-primary/20" : ""
             )}
+            style={{
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              wordWrap: 'break-word'
+            }}
             contentEditable
             onInput={handleInput}
             onKeyDown={handleKeyDown}
