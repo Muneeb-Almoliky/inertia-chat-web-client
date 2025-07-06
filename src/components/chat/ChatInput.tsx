@@ -37,6 +37,9 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
   const [attachments, setAttachments] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<{ [key: string]: string }>({})
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [inputHistory, setInputHistory] = useState<string[]>([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
+  const [caretPositionHistory, setCaretPositionHistory] = useState<number[]>([])
   
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
@@ -203,6 +206,18 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     e.currentTarget.innerHTML = tempDiv.innerHTML;
     setMessage(tempDiv.innerHTML);
 
+    // Add to history only if content actually changed
+    if (tempDiv.innerHTML !== inputHistory[inputHistory.length - 1]) {
+      // If we're in the middle of the history and make a change,
+      // we should discard all future history
+      const newHistory = inputHistory.slice(0, historyIndex + 1);
+      const newCaretHistory = caretPositionHistory.slice(0, historyIndex + 1);
+      
+      setInputHistory([...newHistory, tempDiv.innerHTML]);
+      setCaretPositionHistory([...newCaretHistory, caretPos]);
+      setHistoryIndex(prev => prev + 1);
+    }
+
     // Restore caret position if no emoji conversion happened
     if (!contentChanged) {
       setCaretPosition(e.currentTarget, caretPos);
@@ -274,20 +289,139 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     return div.textContent || '';
   };
 
+  const handleUndo = () => {
+    if (historyIndex > 0 && inputRef.current) {
+      const previousContent = inputHistory[historyIndex - 1];
+      const previousCaretPos = caretPositionHistory[historyIndex - 1];
+      
+      inputRef.current.innerHTML = previousContent;
+      setMessage(previousContent);
+      setHistoryIndex(prev => prev - 1);
+      
+      // Restore the cursor position after the content update
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          setCaretPosition(inputRef.current, previousCaretPos);
+        }
+      });
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < inputHistory.length - 1 && inputRef.current) {
+      const nextContent = inputHistory[historyIndex + 1];
+      const nextCaretPos = caretPositionHistory[historyIndex + 1];
+      
+      inputRef.current.innerHTML = nextContent;
+      setMessage(nextContent);
+      setHistoryIndex(prev => prev + 1);
+      
+      // Restore the cursor position after the content update
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          setCaretPosition(inputRef.current, nextCaretPos);
+        }
+      });
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Handle Ctrl + Z (Undo)
+    if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      e.preventDefault();
+      handleUndo();
+      return;
+    }
+
+    // Handle Ctrl + Y or Ctrl + Shift + Z (Redo)
+    if ((e.key.toLowerCase() === 'y' && (e.ctrlKey || e.metaKey)) || 
+        (e.key.toLowerCase() === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
+      e.preventDefault();
+      handleRedo();
+      return;
+    }
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+      return
+    }
+
+    // Handle delete and backspace
+    if (e.key === "Delete" || e.key === "Backspace") {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+
+      const range = selection.getRangeAt(0);
+      if (range.collapsed) {
+        const currentPosition = getCaretPosition(inputRef.current!);
+        
+        // Get the actual node where the cursor is
+        const container = range.startContainer;
+        const offset = range.startOffset;
+
+        let elementToCheck: Node | null = null;
+
+        if (container.nodeType === Node.TEXT_NODE) {
+          // If we're in a text node, check if we're at its boundaries
+          if (e.key === "Delete") {
+            // For Delete key, if we're at the end of text node, look at next sibling
+            if (offset === container.textContent?.length) {
+              elementToCheck = container.nextSibling;
+            }
+          } else { // Backspace
+            // For Backspace, if we're at the start of text node, look at previous sibling
+            if (offset === 0) {
+              elementToCheck = container.previousSibling;
+            }
+          }
+        } else if (container.nodeType === Node.ELEMENT_NODE) {
+          // If we're in an element node (like the contenteditable div)
+          const childNodes = Array.from(container.childNodes);
+          if (e.key === "Delete") {
+            elementToCheck = childNodes[offset];
+          } else { // Backspace
+            elementToCheck = childNodes[offset - 1];
+          }
+        }
+
+        // If we're about to delete an emoji
+        if (elementToCheck && 
+            elementToCheck.nodeType === Node.ELEMENT_NODE && 
+            (elementToCheck as Element).classList.contains('emoji')) {
+          e.preventDefault();
+          (elementToCheck as Element).remove();
+          
+          // Update message content
+          setMessage(inputRef.current!.innerHTML);
+          
+          // Restore cursor position
+          requestAnimationFrame(() => {
+            // For backspace, move cursor back one position
+            const newPosition = e.key === "Backspace" ? currentPosition - 1 : currentPosition;
+            setCaretPosition(inputRef.current!, newPosition);
+          });
+        }
+      }
+    }
+  }
+
   const handleSend = async () => {
     if ((!message.trim() && attachments.length === 0) || isSending || isRecording) return
     try {
-
       if (isEditing && editingMessage && onUpdateMessage) {
         const cleanedMessage = cleanMessageContent(message);
         onUpdateMessage(editingMessage.id, cleanedMessage.trim());
         setMessage("");
-      if (inputRef.current) {
-        inputRef.current.innerHTML = "";
-      }
-      setAttachments([]);
-      setImagePreviews({});
-      return;
+        if (inputRef.current) {
+          inputRef.current.innerHTML = "";
+        }
+        setAttachments([]);
+        setImagePreviews({});
+        setInputHistory([]);
+        setHistoryIndex(-1);
+        setCaretPositionHistory([]);
+        return;
       }
       setIsSending(true)
       const cleanedMessage = cleanMessageContent(message);
@@ -298,6 +432,9 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
       }
       setAttachments([])
       setImagePreviews({})
+      setInputHistory([])
+      setHistoryIndex(-1)
+      setCaretPositionHistory([])
       onMessageSent?.()
     } catch (error: unknown) {
       console.error("Failed to send message:", error)
@@ -424,72 +561,6 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
       }
     }
   };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-      return
-    }
-
-    // Handle delete and backspace
-    if (e.key === "Delete" || e.key === "Backspace") {
-      const selection = window.getSelection();
-      if (!selection || !selection.rangeCount) return;
-
-      const range = selection.getRangeAt(0);
-      if (range.collapsed) {
-        const currentPosition = getCaretPosition(inputRef.current!);
-        
-        // Get the actual node where the cursor is
-        const container = range.startContainer;
-        const offset = range.startOffset;
-
-        let elementToCheck: Node | null = null;
-
-        if (container.nodeType === Node.TEXT_NODE) {
-          // If we're in a text node, check if we're at its boundaries
-          if (e.key === "Delete") {
-            // For Delete key, if we're at the end of text node, look at next sibling
-            if (offset === container.textContent?.length) {
-              elementToCheck = container.nextSibling;
-            }
-          } else { // Backspace
-            // For Backspace, if we're at the start of text node, look at previous sibling
-            if (offset === 0) {
-              elementToCheck = container.previousSibling;
-            }
-          }
-        } else if (container.nodeType === Node.ELEMENT_NODE) {
-          // If we're in an element node (like the contenteditable div)
-          const childNodes = Array.from(container.childNodes);
-          if (e.key === "Delete") {
-            elementToCheck = childNodes[offset];
-          } else { // Backspace
-            elementToCheck = childNodes[offset - 1];
-          }
-        }
-
-        // If we're about to delete an emoji
-        if (elementToCheck && 
-            elementToCheck.nodeType === Node.ELEMENT_NODE && 
-            (elementToCheck as Element).classList.contains('emoji')) {
-          e.preventDefault();
-          (elementToCheck as Element).remove();
-          
-          // Update message content
-          setMessage(inputRef.current!.innerHTML);
-          
-          // Restore cursor position
-          requestAnimationFrame(() => {
-            // For backspace, move cursor back one position
-            const newPosition = e.key === "Backspace" ? currentPosition - 1 : currentPosition;
-            setCaretPosition(inputRef.current!, newPosition);
-          });
-        }
-      }
-    }
-  }
 
   return (
     <div className="flex flex-col gap-2">
