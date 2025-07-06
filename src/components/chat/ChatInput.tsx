@@ -91,10 +91,80 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     });
   };
 
+  const getCaretPosition = (element: HTMLElement) => {
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return 0;
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(element);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    
+    // Count emoji elements as single characters
+    let length = 0;
+    const nodes = Array.from(preCaretRange.cloneContents().childNodes);
+    nodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        length += node.textContent?.length || 0;
+      } else if (node.nodeType === Node.ELEMENT_NODE && (node as Element).classList.contains('emoji')) {
+        length += 1;
+      }
+    });
+    
+    return length;
+  };
+
+  const setCaretPosition = (element: HTMLElement, position: number) => {
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    let currentPos = 0;
+    const range = document.createRange();
+
+    const traverse = (node: Node): boolean => {
+      if (currentPos >= position) {
+        return true;
+      }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        const length = node.textContent?.length || 0;
+        if (currentPos + length >= position) {
+          range.setStart(node, position - currentPos);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return true;
+        }
+        currentPos += length;
+      } else if (node.nodeType === Node.ELEMENT_NODE && (node as Element).classList.contains('emoji')) {
+        currentPos += 1;
+        if (currentPos === position) {
+          range.setStartAfter(node);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return true;
+        }
+      } else {
+        for (const child of Array.from(node.childNodes)) {
+          if (traverse(child)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    traverse(element);
+  };
+
   const handleInput = (e: FormEvent<HTMLDivElement>) => {
     const content = e.currentTarget.innerHTML;
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = content;
+
+    // Store current caret position
+    const caretPos = getCaretPosition(e.currentTarget);
 
     // Find text nodes that are not inside emoji images
     const textNodes: Node[] = [];
@@ -103,7 +173,6 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
       NodeFilter.SHOW_TEXT,
       {
         acceptNode: (node) => {
-          // Skip text nodes that are children of emoji images
           if (node.parentElement?.classList.contains('emoji')) {
             return NodeFilter.FILTER_REJECT;
           }
@@ -118,10 +187,12 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     }
 
     // Convert only text nodes to emojis
+    let contentChanged = false;
     textNodes.forEach(node => {
       if (node.textContent) {
         const converted = convertTextToEmojiImages(node.textContent);
         if (converted !== node.textContent) {
+          contentChanged = true;
           const wrapper = document.createElement('div');
           wrapper.innerHTML = converted;
           node.parentNode?.replaceChild(wrapper.firstChild!, node);
@@ -132,13 +203,10 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     e.currentTarget.innerHTML = tempDiv.innerHTML;
     setMessage(tempDiv.innerHTML);
 
-    // Restore cursor position at the end
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(e.currentTarget);
-    range.collapse(false);
-    selection?.removeAllRanges();
-    selection?.addRange(range);
+    // Restore caret position if no emoji conversion happened
+    if (!contentChanged) {
+      setCaretPosition(e.currentTarget, caretPos);
+    }
   };
 
   const handlePaste = (e: ClipboardEvent) => {
@@ -246,37 +314,70 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
 
   const onEmojiSelect = (emojiData: EmojiClickData) => {
     if (inputRef.current) {
-      const img = document.createElement('img')
-      img.src = emojiData.imageUrl
-      img.alt = emojiData.emoji  // Just use the emoji character
-      img.className = 'emoji'
-      img.draggable = false
-      img.style.width = '1.25em'
-      img.style.height = '1.25em'
-      img.style.verticalAlign = '-0.25em'
-      img.style.margin = '0 0.05em 0 0.1em'
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
 
-      const selection = window.getSelection()
-      const range = selection?.getRangeAt(0)
+      const range = selection.getRangeAt(0);
+      const container = range.startContainer;
+      const offset = range.startOffset;
       
-      if (range) {
-        range.deleteContents()
-        range.insertNode(img)
-        range.collapse(false)
+      // Create emoji image element
+      const img = document.createElement('img');
+      img.src = emojiData.imageUrl;
+      img.alt = emojiData.emoji;
+      img.className = 'emoji';
+      img.draggable = false;
+      img.style.width = '1.25em';
+      img.style.height = '1.25em';
+      img.style.verticalAlign = '-0.25em';
+      img.style.margin = '0 0.05em 0 0.1em';
+
+      if (container.nodeType === Node.TEXT_NODE) {
+        // Split text node at cursor position
+        const textContent = container.textContent || '';
+        const beforeText = textContent.substring(0, offset);
+        const afterText = textContent.substring(offset);
+
+        // Create text nodes for before and after content
+        const beforeNode = document.createTextNode(beforeText);
+        const afterNode = document.createTextNode(afterText);
+
+        // Replace the original text node with: beforeText + emoji + afterText
+        const fragment = document.createDocumentFragment();
+        fragment.appendChild(beforeNode);
+        fragment.appendChild(img);
+        fragment.appendChild(afterNode);
+        container.parentNode?.replaceChild(fragment, container);
+
+        // Set cursor after emoji
+        const newRange = document.createRange();
+        newRange.setStartAfter(img);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      } else if (container.nodeType === Node.ELEMENT_NODE) {
+        // If we're in the contenteditable div itself
+        const childNodes = Array.from(container.childNodes);
         
-        // Update message content
-        setMessage(inputRef.current.innerHTML)
-        
-        // Move cursor after emoji
-        const newRange = document.createRange()
-        newRange.setStartAfter(img)
-        newRange.collapse(true)
-        selection?.removeAllRanges()
-        selection?.addRange(newRange)
-        
-        // Focus back on input
-        inputRef.current.focus()
+        if (childNodes.length === 0 || offset >= childNodes.length) {
+          // If empty or cursor at end, just append
+          container.appendChild(img);
+        } else {
+          // Insert before the node at current position
+          container.insertBefore(img, childNodes[offset]);
+        }
+
+        // Set cursor after emoji
+        const newRange = document.createRange();
+        newRange.setStartAfter(img);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
       }
+
+      // Update message content and focus
+      setMessage(inputRef.current.innerHTML);
+      inputRef.current.focus();
     }
   }
 
@@ -328,6 +429,65 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSend()
+      return
+    }
+
+    // Handle delete and backspace
+    if (e.key === "Delete" || e.key === "Backspace") {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+
+      const range = selection.getRangeAt(0);
+      if (range.collapsed) {
+        const currentPosition = getCaretPosition(inputRef.current!);
+        
+        // Get the actual node where the cursor is
+        const container = range.startContainer;
+        const offset = range.startOffset;
+
+        let elementToCheck: Node | null = null;
+
+        if (container.nodeType === Node.TEXT_NODE) {
+          // If we're in a text node, check if we're at its boundaries
+          if (e.key === "Delete") {
+            // For Delete key, if we're at the end of text node, look at next sibling
+            if (offset === container.textContent?.length) {
+              elementToCheck = container.nextSibling;
+            }
+          } else { // Backspace
+            // For Backspace, if we're at the start of text node, look at previous sibling
+            if (offset === 0) {
+              elementToCheck = container.previousSibling;
+            }
+          }
+        } else if (container.nodeType === Node.ELEMENT_NODE) {
+          // If we're in an element node (like the contenteditable div)
+          const childNodes = Array.from(container.childNodes);
+          if (e.key === "Delete") {
+            elementToCheck = childNodes[offset];
+          } else { // Backspace
+            elementToCheck = childNodes[offset - 1];
+          }
+        }
+
+        // If we're about to delete an emoji
+        if (elementToCheck && 
+            elementToCheck.nodeType === Node.ELEMENT_NODE && 
+            (elementToCheck as Element).classList.contains('emoji')) {
+          e.preventDefault();
+          (elementToCheck as Element).remove();
+          
+          // Update message content
+          setMessage(inputRef.current!.innerHTML);
+          
+          // Restore cursor position
+          requestAnimationFrame(() => {
+            // For backspace, move cursor back one position
+            const newPosition = e.key === "Backspace" ? currentPosition - 1 : currentPosition;
+            setCaretPosition(inputRef.current!, newPosition);
+          });
+        }
+      }
     }
   }
 
