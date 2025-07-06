@@ -20,6 +20,7 @@ import * as Popover from '@radix-ui/react-popover'
 import twemoji from 'twemoji'
 import { cn } from "@/lib/utils"
 import { useChatStore } from "@/lib/store/chat.store"
+import { isFirstLetterArabic } from "@/utils/text"
 
 interface ChatInputProps {
   conversationId: string
@@ -49,6 +50,7 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
 
   const { editingMessage, setEditingMessage } = useChatStore();
+  const [isRTL, setIsRTL] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -165,6 +167,8 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     const content = e.currentTarget.innerHTML;
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = content;
+
+    setIsRTL(isFirstLetterArabic(tempDiv.textContent || ''));
 
     // Store current caret position
     const caretPos = getCaretPosition(e.currentTarget);
@@ -724,6 +728,7 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
               "[&::-webkit-scrollbar-thumb:hover]:bg-gray-300",
               "whitespace-pre-wrap break-all max-w-full",
               "[word-break:break-word] [overflow-wrap:break-word]",
+              isRTL ? "text-right" : "text-left",
               "border border-gray-200",
               isEditing ? "bg-primary/5 border-primary/20 ring-2 ring-primary/20" : ""
             )}
@@ -746,6 +751,7 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
             role="textbox"
             aria-multiline="true"
             aria-label="Message input"
+            dir={isRTL ? "rtl" : "ltr"}
           />
         </div>
         {isEditing ? (

@@ -131,8 +131,9 @@ export function ChatMessages({ conversationId }: ChatMessagesProps) {
   return (
     <div 
       ref={containerRef} 
-      className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 px-4 sm:px-6 md:px-10 relative chat-messages-container overflow-y-auto h-full"
+      className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 px-4 sm:px-6 md:px-10 relative chat-messages-container overflow-y-auto h-full [direction:initial]"
       onScroll={handleScroll}
+      dir="auto"
     >
       {sortedMessages
         .filter(message => {

@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { memo, useCallback, useMemo } from "react";
 import { resolveAttachmentUrl } from "@/utils/resolveAttachmentUrl";
 import Avatar from "./Avatar";
+import { isFirstLetterArabic } from "@/utils/text";
 
 // Memoized Private Message Status Component
 const PrivateMessageStatus = memo(({ 
@@ -318,6 +319,8 @@ export const ChatMessage = memo(({
   const hasContent = message?.content?.trim().length > 0;
   const isSingleEmojiMessage = hasContent && isSingleEmoji(message.content);
 
+  const messageDirection = message.content ? isFirstLetterArabic(message.content) : false;
+
   return (
     <div className={cn(
       "flex gap-1.5 sm:gap-2 md:gap-3 group/message",
@@ -411,11 +414,13 @@ export const ChatMessage = memo(({
           <div
             className={cn(
               "rounded-lg p-1.5 sm:p-2 md:p-2.5 text-sm sm:text-sm md:text-base",
-              "break-all whitespace-pre-wrap overflow-hidden",
+              "whitespace-pre-wrap break-word overflow-wrap-anywhere hyphens-auto",
+              messageDirection ? "text-right" : "text-left",
               isSingleEmojiMessage 
                 ? "!p-0"
                 : isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
             )}
+            dir={messageDirection ? "rtl" : "ltr"}
           >
             <span
               className={cn(
@@ -424,6 +429,7 @@ export const ChatMessage = memo(({
                   ? "[&_img.emoji]:size-[3em] sm:[&_img.emoji]:size-[4em] md:[&_img.emoji]:size-[5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
                   : "[&_img.emoji]:size-[1em] sm:[&_img.emoji]:size-[1.1em] md:[&_img.emoji]:size-[1.2em]"
               )}
+              dir={messageDirection ? "rtl" : "ltr"}
               dangerouslySetInnerHTML={{
                 __html: parseEmoji(message.content),
               }}
