@@ -45,7 +45,6 @@ export function ChatHeader({
   chatType,
   otherUser,
   groupDetails,
-  showSettings,
   onOpenSettings,
   onLeaveGroup,
 }: ChatHeaderProps) {
@@ -58,7 +57,7 @@ export function ChatHeader({
 
   return (
     <div className="border-b bg-gray-50 flex items-center justify-between h-16 sm:h-18 px-4 sm:px-6 md:px-8 lg:px-10">
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0 pl-10 md:pl-0">
         <div className="relative flex-shrink-0">
           {ready ? (
             chatType === ChatType.INDIVIDUAL ? (

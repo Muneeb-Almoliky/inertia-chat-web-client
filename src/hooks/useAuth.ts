@@ -15,7 +15,7 @@ export function useAuth() {
         try {
           auth.setLoading(true)
           await refresh()
-        } catch (error) {
+        } catch {
           // If refresh fails, mark as initialized but not authenticated
           auth.clearAuth()
         } finally {

@@ -1,8 +1,9 @@
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
-import { ChatMessage, MessageType, MessageStatusType, MessageStatus } from '@/types/chat'
+import { ChatMessage, MessageType, MessageStatus } from '@/types/chat'
 import { useAuthStore } from '@/lib/store/auth.store'
 import { messageService } from './messageService'
+import { getApiBaseUrl } from "@/utils/api"
 
 type PendingSub = {
   chatId: number
@@ -32,7 +33,7 @@ class WebSocketService {
 
     this.client = new Client({
       webSocketFactory: () =>
-        new SockJS(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:9090/ws'),
+        new SockJS(`${getApiBaseUrl()}/ws`),
       connectHeaders: { Authorization: `Bearer ${accessToken}` },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,

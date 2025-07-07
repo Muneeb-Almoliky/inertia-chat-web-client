@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/tooltip"
 import EmojiPicker, { EmojiStyle, Theme, EmojiClickData } from 'emoji-picker-react'
 import { useChat } from "@/hooks/useChat"
-import { parseEmoji } from "@/utils/emoji"
 import { toast } from "sonner"
 import { formatFileSize, getFileType, getFileIcon, isVoiceMessage } from "@/utils/file"
 import { formatTime } from "@/utils/audio"
@@ -21,6 +20,7 @@ import * as Popover from '@radix-ui/react-popover'
 import twemoji from 'twemoji'
 import { cn } from "@/lib/utils"
 import { useChatStore } from "@/lib/store/chat.store"
+import { isFirstLetterArabic } from "@/utils/text"
 
 interface ChatInputProps {
   conversationId: string
@@ -29,7 +29,7 @@ interface ChatInputProps {
   onUpdateMessage?: (messageId: number, content: string) => void
   isMainInput?: boolean
 }
-export function ChatInput({ conversationId, onMessageSent, isEditing = false, onUpdateMessage, isMainInput = true }: ChatInputProps) {
+export function ChatInput({ conversationId, onMessageSent, isEditing = false, onUpdateMessage }: ChatInputProps) {
   const { sendMessage } = useChat(Number(conversationId))
   const [message, setMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
@@ -38,6 +38,9 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
   const [attachments, setAttachments] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<{ [key: string]: string }>({})
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [inputHistory, setInputHistory] = useState<string[]>([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
+  const [caretPositionHistory, setCaretPositionHistory] = useState<number[]>([])
   
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
@@ -47,6 +50,7 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
 
   const { editingMessage, setEditingMessage } = useChatStore();
+  const [isRTL, setIsRTL] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -84,7 +88,7 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
       ext: '.png',
       base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/',
       className: 'emoji',
-      attributes: (icon, variant) => {
+      attributes: (icon) => {
         return {
           alt: icon
         }
@@ -92,10 +96,82 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     });
   };
 
+  const getCaretPosition = (element: HTMLElement) => {
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return 0;
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(element);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    
+    // Count emoji elements as single characters
+    let length = 0;
+    const nodes = Array.from(preCaretRange.cloneContents().childNodes);
+    nodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        length += node.textContent?.length || 0;
+      } else if (node.nodeType === Node.ELEMENT_NODE && (node as Element).classList.contains('emoji')) {
+        length += 1;
+      }
+    });
+    
+    return length;
+  };
+
+  const setCaretPosition = (element: HTMLElement, position: number) => {
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    let currentPos = 0;
+    const range = document.createRange();
+
+    const traverse = (node: Node): boolean => {
+      if (currentPos >= position) {
+        return true;
+      }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        const length = node.textContent?.length || 0;
+        if (currentPos + length >= position) {
+          range.setStart(node, position - currentPos);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return true;
+        }
+        currentPos += length;
+      } else if (node.nodeType === Node.ELEMENT_NODE && (node as Element).classList.contains('emoji')) {
+        currentPos += 1;
+        if (currentPos === position) {
+          range.setStartAfter(node);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return true;
+        }
+      } else {
+        for (const child of Array.from(node.childNodes)) {
+          if (traverse(child)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    traverse(element);
+  };
+
   const handleInput = (e: FormEvent<HTMLDivElement>) => {
     const content = e.currentTarget.innerHTML;
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = content;
+
+    setIsRTL(isFirstLetterArabic(tempDiv.textContent || ''));
+
+    // Store current caret position
+    const caretPos = getCaretPosition(e.currentTarget);
 
     // Find text nodes that are not inside emoji images
     const textNodes: Node[] = [];
@@ -104,7 +180,6 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
       NodeFilter.SHOW_TEXT,
       {
         acceptNode: (node) => {
-          // Skip text nodes that are children of emoji images
           if (node.parentElement?.classList.contains('emoji')) {
             return NodeFilter.FILTER_REJECT;
           }
@@ -119,10 +194,12 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     }
 
     // Convert only text nodes to emojis
+    let contentChanged = false;
     textNodes.forEach(node => {
       if (node.textContent) {
         const converted = convertTextToEmojiImages(node.textContent);
         if (converted !== node.textContent) {
+          contentChanged = true;
           const wrapper = document.createElement('div');
           wrapper.innerHTML = converted;
           node.parentNode?.replaceChild(wrapper.firstChild!, node);
@@ -133,13 +210,22 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     e.currentTarget.innerHTML = tempDiv.innerHTML;
     setMessage(tempDiv.innerHTML);
 
-    // Restore cursor position at the end
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(e.currentTarget);
-    range.collapse(false);
-    selection?.removeAllRanges();
-    selection?.addRange(range);
+    // Add to history only if content actually changed
+    if (tempDiv.innerHTML !== inputHistory[inputHistory.length - 1]) {
+      // If we're in the middle of the history and make a change,
+      // we should discard all future history
+      const newHistory = inputHistory.slice(0, historyIndex + 1);
+      const newCaretHistory = caretPositionHistory.slice(0, historyIndex + 1);
+      
+      setInputHistory([...newHistory, tempDiv.innerHTML]);
+      setCaretPositionHistory([...newCaretHistory, caretPos]);
+      setHistoryIndex(prev => prev + 1);
+    }
+
+    // Restore caret position if no emoji conversion happened
+    if (!contentChanged) {
+      setCaretPosition(e.currentTarget, caretPos);
+    }
   };
 
   const handlePaste = (e: ClipboardEvent) => {
@@ -207,20 +293,139 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
     return div.textContent || '';
   };
 
+  const handleUndo = () => {
+    if (historyIndex > 0 && inputRef.current) {
+      const previousContent = inputHistory[historyIndex - 1];
+      const previousCaretPos = caretPositionHistory[historyIndex - 1];
+      
+      inputRef.current.innerHTML = previousContent;
+      setMessage(previousContent);
+      setHistoryIndex(prev => prev - 1);
+      
+      // Restore the cursor position after the content update
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          setCaretPosition(inputRef.current, previousCaretPos);
+        }
+      });
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < inputHistory.length - 1 && inputRef.current) {
+      const nextContent = inputHistory[historyIndex + 1];
+      const nextCaretPos = caretPositionHistory[historyIndex + 1];
+      
+      inputRef.current.innerHTML = nextContent;
+      setMessage(nextContent);
+      setHistoryIndex(prev => prev + 1);
+      
+      // Restore the cursor position after the content update
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          setCaretPosition(inputRef.current, nextCaretPos);
+        }
+      });
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Handle Ctrl + Z (Undo)
+    if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      e.preventDefault();
+      handleUndo();
+      return;
+    }
+
+    // Handle Ctrl + Y or Ctrl + Shift + Z (Redo)
+    if ((e.key.toLowerCase() === 'y' && (e.ctrlKey || e.metaKey)) || 
+        (e.key.toLowerCase() === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
+      e.preventDefault();
+      handleRedo();
+      return;
+    }
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+      return
+    }
+
+    // Handle delete and backspace
+    if (e.key === "Delete" || e.key === "Backspace") {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+
+      const range = selection.getRangeAt(0);
+      if (range.collapsed) {
+        const currentPosition = getCaretPosition(inputRef.current!);
+        
+        // Get the actual node where the cursor is
+        const container = range.startContainer;
+        const offset = range.startOffset;
+
+        let elementToCheck: Node | null = null;
+
+        if (container.nodeType === Node.TEXT_NODE) {
+          // If we're in a text node, check if we're at its boundaries
+          if (e.key === "Delete") {
+            // For Delete key, if we're at the end of text node, look at next sibling
+            if (offset === container.textContent?.length) {
+              elementToCheck = container.nextSibling;
+            }
+          } else { // Backspace
+            // For Backspace, if we're at the start of text node, look at previous sibling
+            if (offset === 0) {
+              elementToCheck = container.previousSibling;
+            }
+          }
+        } else if (container.nodeType === Node.ELEMENT_NODE) {
+          // If we're in an element node (like the contenteditable div)
+          const childNodes = Array.from(container.childNodes);
+          if (e.key === "Delete") {
+            elementToCheck = childNodes[offset];
+          } else { // Backspace
+            elementToCheck = childNodes[offset - 1];
+          }
+        }
+
+        // If we're about to delete an emoji
+        if (elementToCheck && 
+            elementToCheck.nodeType === Node.ELEMENT_NODE && 
+            (elementToCheck as Element).classList.contains('emoji')) {
+          e.preventDefault();
+          (elementToCheck as Element).remove();
+          
+          // Update message content
+          setMessage(inputRef.current!.innerHTML);
+          
+          // Restore cursor position
+          requestAnimationFrame(() => {
+            // For backspace, move cursor back one position
+            const newPosition = e.key === "Backspace" ? currentPosition - 1 : currentPosition;
+            setCaretPosition(inputRef.current!, newPosition);
+          });
+        }
+      }
+    }
+  }
+
   const handleSend = async () => {
     if ((!message.trim() && attachments.length === 0) || isSending || isRecording) return
     try {
-
       if (isEditing && editingMessage && onUpdateMessage) {
         const cleanedMessage = cleanMessageContent(message);
         onUpdateMessage(editingMessage.id, cleanedMessage.trim());
         setMessage("");
-      if (inputRef.current) {
-        inputRef.current.innerHTML = "";
-      }
-      setAttachments([]);
-      setImagePreviews({});
-      return;
+        if (inputRef.current) {
+          inputRef.current.innerHTML = "";
+        }
+        setAttachments([]);
+        setImagePreviews({});
+        setInputHistory([]);
+        setHistoryIndex(-1);
+        setCaretPositionHistory([]);
+        return;
       }
       setIsSending(true)
       const cleanedMessage = cleanMessageContent(message);
@@ -231,11 +436,15 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
       }
       setAttachments([])
       setImagePreviews({})
+      setInputHistory([])
+      setHistoryIndex(-1)
+      setCaretPositionHistory([])
       onMessageSent?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to send message:", error)
-      if (error.message?.includes('File size too large')) {
-        toast.error(error.message);
+      const err = error as Error;
+      if (err.message?.includes('File size too large')) {
+        toast.error(err.message);
       } else {
         toast.error("Failed to send message. Please try again.");
       }
@@ -246,37 +455,70 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
 
   const onEmojiSelect = (emojiData: EmojiClickData) => {
     if (inputRef.current) {
-      const img = document.createElement('img')
-      img.src = emojiData.imageUrl
-      img.alt = emojiData.emoji  // Just use the emoji character
-      img.className = 'emoji'
-      img.draggable = false
-      img.style.width = '1.25em'
-      img.style.height = '1.25em'
-      img.style.verticalAlign = '-0.25em'
-      img.style.margin = '0 0.05em 0 0.1em'
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
 
-      const selection = window.getSelection()
-      const range = selection?.getRangeAt(0)
+      const range = selection.getRangeAt(0);
+      const container = range.startContainer;
+      const offset = range.startOffset;
       
-      if (range) {
-        range.deleteContents()
-        range.insertNode(img)
-        range.collapse(false)
+      // Create emoji image element
+      const img = document.createElement('img');
+      img.src = emojiData.imageUrl;
+      img.alt = emojiData.emoji;
+      img.className = 'emoji';
+      img.draggable = false;
+      img.style.width = '1.25em';
+      img.style.height = '1.25em';
+      img.style.verticalAlign = '-0.25em';
+      img.style.margin = '0 0.05em 0 0.1em';
+
+      if (container.nodeType === Node.TEXT_NODE) {
+        // Split text node at cursor position
+        const textContent = container.textContent || '';
+        const beforeText = textContent.substring(0, offset);
+        const afterText = textContent.substring(offset);
+
+        // Create text nodes for before and after content
+        const beforeNode = document.createTextNode(beforeText);
+        const afterNode = document.createTextNode(afterText);
+
+        // Replace the original text node with: beforeText + emoji + afterText
+        const fragment = document.createDocumentFragment();
+        fragment.appendChild(beforeNode);
+        fragment.appendChild(img);
+        fragment.appendChild(afterNode);
+        container.parentNode?.replaceChild(fragment, container);
+
+        // Set cursor after emoji
+        const newRange = document.createRange();
+        newRange.setStartAfter(img);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      } else if (container.nodeType === Node.ELEMENT_NODE) {
+        // If we're in the contenteditable div itself
+        const childNodes = Array.from(container.childNodes);
         
-        // Update message content
-        setMessage(inputRef.current.innerHTML)
-        
-        // Move cursor after emoji
-        const newRange = document.createRange()
-        newRange.setStartAfter(img)
-        newRange.collapse(true)
-        selection?.removeAllRanges()
-        selection?.addRange(newRange)
-        
-        // Focus back on input
-        inputRef.current.focus()
+        if (childNodes.length === 0 || offset >= childNodes.length) {
+          // If empty or cursor at end, just append
+          container.appendChild(img);
+        } else {
+          // Insert before the node at current position
+          container.insertBefore(img, childNodes[offset]);
+        }
+
+        // Set cursor after emoji
+        const newRange = document.createRange();
+        newRange.setStartAfter(img);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
       }
+
+      // Update message content and focus
+      setMessage(inputRef.current.innerHTML);
+      inputRef.current.focus();
     }
   }
 
@@ -323,13 +565,6 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
       }
     }
   };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -491,10 +726,17 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
               "[&::-webkit-scrollbar-track]:bg-transparent",
               "[&::-webkit-scrollbar-thumb]:bg-gray-300/80",
               "[&::-webkit-scrollbar-thumb:hover]:bg-gray-300",
-              "break-all whitespace-pre-wrap overflow-hidden",
+              "whitespace-pre-wrap break-all max-w-full",
+              "[word-break:break-word] [overflow-wrap:break-word]",
+              isRTL ? "text-right" : "text-left",
               "border border-gray-200",
               isEditing ? "bg-primary/5 border-primary/20 ring-2 ring-primary/20" : ""
             )}
+            style={{
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              wordWrap: 'break-word'
+            }}
             contentEditable
             onInput={handleInput}
             onKeyDown={handleKeyDown}
@@ -509,6 +751,7 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
             role="textbox"
             aria-multiline="true"
             aria-label="Message input"
+            dir={isRTL ? "rtl" : "ltr"}
           />
         </div>
         {isEditing ? (

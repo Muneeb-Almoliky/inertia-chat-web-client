@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Users, X, UserPlus, UserMinus, ImageIcon, Search } from 'lucide-react'
+import { ArrowLeft, Users, X, ImageIcon, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,6 @@ import { Backdrop } from '@/components/ui/backdrop'
 import { UserProfile } from '@/types/user'
 import { chatService } from '@/services/chatService'
 import { toast } from 'sonner'
-import Avatar from '@/components/chat/Avatar'
 import { ChatType } from '@/types/chat'
 
 interface NewChatSidebarProps {

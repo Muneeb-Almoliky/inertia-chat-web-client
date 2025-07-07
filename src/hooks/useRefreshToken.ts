@@ -1,6 +1,4 @@
 import { useAuthStore } from '@/lib/store/auth.store';
-import axiosInstance from '@/api/axios';
-import type { AuthResponse } from '@/lib/schemas/auth';
 import { authService } from '@/services/authService';
 
 export function useRefreshToken() {

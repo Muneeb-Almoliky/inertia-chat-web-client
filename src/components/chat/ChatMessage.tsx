@@ -4,7 +4,9 @@ import { cn } from "@/lib/utils";
 import { 
   FileText, Image, File, Video, Music, Download, Mic, MoreVertical, Pencil, Trash2, Check, CheckCheck 
 } from "lucide-react";
-import { Attachment, AttachmentType, ChatType, MessageStatusType } from "@/types/chat";
+import { 
+  Attachment, AttachmentType, ChatType, MessageStatusType, ChatMessage as IChatMessage 
+} from "@/types/chat";
 import { Button } from "@/components/ui/button";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { parseEmoji } from "@/utils/emoji";
@@ -19,6 +21,7 @@ import { format } from "date-fns";
 import { memo, useCallback, useMemo } from "react";
 import { resolveAttachmentUrl } from "@/utils/resolveAttachmentUrl";
 import Avatar from "./Avatar";
+import { isFirstLetterArabic } from "@/utils/text";
 
 // Memoized Private Message Status Component
 const PrivateMessageStatus = memo(({ 
@@ -41,6 +44,8 @@ const PrivateMessageStatus = memo(({
     <Check className="h-3 w-3 text-muted-foreground" />
   );
 });
+
+PrivateMessageStatus.displayName = 'PrivateMessageStatus';
 
 // Memoized Group Message Status Component
 const GroupMessageStatus = memo(({ 
@@ -82,6 +87,8 @@ const GroupMessageStatus = memo(({
     </>
   );
 });
+
+GroupMessageStatus.displayName = 'GroupMessageStatus';
 
 
 const getAttachmentIcon = (type: AttachmentType) => {
@@ -135,7 +142,7 @@ const isSingleEmoji = (content: string) => {
 };
 
 interface ChatMessageProps {
-  message: any;
+  message: IChatMessage;
   isCurrentUser: boolean;
   chatType: ChatType | undefined;
   currentUserId: number;
@@ -154,7 +161,6 @@ export const ChatMessage = memo(({
   isEditing,
   onEditMessage,
   setMessageToDelete,
-  playingAudioId,
   setPlayingAudio
 }: ChatMessageProps) => {
   const handleDownload = useCallback(async (url: string, fileName: string) => {
@@ -174,7 +180,9 @@ export const ChatMessage = memo(({
     }
   }, []);
 
-  const renderAttachments = useCallback((attachments: Attachment[], isCurrentUser: boolean) => {
+  const renderAttachments = useCallback((attachments: Attachment[] | undefined, isCurrentUser: boolean) => {
+    if (!attachments) return null;
+    
     const images = attachments.filter(att => att.type === AttachmentType.IMAGE);
     const voiceMessages = attachments.filter(att => att.type === AttachmentType.VOICE);
     const otherFiles = attachments.filter(att => 
@@ -311,6 +319,8 @@ export const ChatMessage = memo(({
   const hasContent = message?.content?.trim().length > 0;
   const isSingleEmojiMessage = hasContent && isSingleEmoji(message.content);
 
+  const messageDirection = message.content ? isFirstLetterArabic(message.content) : false;
+
   return (
     <div className={cn(
       "flex gap-1.5 sm:gap-2 md:gap-3 group/message",
@@ -404,11 +414,13 @@ export const ChatMessage = memo(({
           <div
             className={cn(
               "rounded-lg p-1.5 sm:p-2 md:p-2.5 text-sm sm:text-sm md:text-base",
-              "break-all whitespace-pre-wrap overflow-hidden",
+              "whitespace-pre-wrap break-word overflow-wrap-anywhere hyphens-auto",
+              messageDirection ? "text-right" : "text-left",
               isSingleEmojiMessage 
                 ? "!p-0"
                 : isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted"
             )}
+            dir={messageDirection ? "rtl" : "ltr"}
           >
             <span
               className={cn(
@@ -417,6 +429,7 @@ export const ChatMessage = memo(({
                   ? "[&_img.emoji]:size-[3em] sm:[&_img.emoji]:size-[4em] md:[&_img.emoji]:size-[5em] [&_img.emoji]:align-middle [&_img.emoji]:m-0"
                   : "[&_img.emoji]:size-[1em] sm:[&_img.emoji]:size-[1.1em] md:[&_img.emoji]:size-[1.2em]"
               )}
+              dir={messageDirection ? "rtl" : "ltr"}
               dangerouslySetInnerHTML={{
                 __html: parseEmoji(message.content),
               }}
@@ -427,3 +440,5 @@ export const ChatMessage = memo(({
     </div>
   );
 });
+
+ChatMessage.displayName = 'ChatMessage';

@@ -54,7 +54,6 @@ export function ConversationList({ search }: ConversationListProps) {
   const { auth } = useAuth()
   const [chatToDelete, setChatToDelete] = useState<number | null>(null)
   const [users, setUsers] = useState<UserProfile[]>([])
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -63,8 +62,6 @@ export function ConversationList({ search }: ConversationListProps) {
         setUsers(data)
       } catch (error) {
         console.error("Failed to fetch users:", error)
-      } finally {
-        setLoading(false)
       }
     }
     fetchUsers()
@@ -197,7 +194,7 @@ export function ConversationList({ search }: ConversationListProps) {
                 <div className="relative flex-shrink-0">
                   <Avatar
                     path={isGroup ? chat.avatarUrl : other?.profilePicture}
-                    name={isGroup ? chat.name! : other?.name!}
+                    name={isGroup ? (chat.name || 'Group Chat') : (other?.name || 'Unknown User')}
                   />
                   {!isGroup && userStatus && (
                     <TooltipProvider>

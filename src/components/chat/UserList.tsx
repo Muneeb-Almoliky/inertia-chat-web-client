@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
-import { Loader2, MoreVertical, Check } from "lucide-react"
+import { Loader2, Check } from "lucide-react"
 import { toast } from "sonner"
 import { chatService } from "@/services/chatService"
 import { UserStatus } from '@/types/user'

@@ -1,10 +1,6 @@
 import axiosInstance from '@/api/axios'
 import type { ChatMessage } from '@/types/chat'
 
-interface UpdateMessageRequest {
-  content: string
-}
-
 export const messageService = {
   updateMessage: async (messageId: number, content: string): Promise<ChatMessage> => {
     try {

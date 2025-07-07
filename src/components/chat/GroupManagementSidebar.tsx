@@ -127,7 +127,7 @@ export function GroupManagementSidebar({
     if (participant.status === UserStatus.ONLINE) {
       return "Online";
     }
-    return formatLastSeen(participant.lastSeen);
+    return participant.lastSeen ? formatLastSeen(participant.lastSeen) : "Unknown";
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
