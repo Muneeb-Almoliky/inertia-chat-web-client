@@ -18,9 +18,9 @@ export function AuthGuard<P extends object>(
         const returnTo = window.location.pathname + window.location.search
         router.replace(`/login?from=${encodeURIComponent(returnTo)}`)
       }
-    }, [isAuthenticated, router])
+    }, [isAuthenticated, isInitialized, router])
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !isInitialized) {
       return null
     }
 
