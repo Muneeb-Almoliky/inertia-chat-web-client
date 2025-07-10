@@ -105,11 +105,6 @@
       // Only fetch user details if it's an individual chat
       if (chatType === ChatType.INDIVIDUAL) {
         fetchData();
-        const interval = setInterval(fetchData, 15000);
-        return () => {
-          isMounted = false;
-          clearInterval(interval);
-        };
       }
     }, [conversationId, auth.userId, chatType]);
 
