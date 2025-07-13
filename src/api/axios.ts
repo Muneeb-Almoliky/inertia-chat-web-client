@@ -30,11 +30,13 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalReq = error.config!;
     const status = error.response?.status;
+    const { accessToken } = useAuthStore.getState();
 
     if (
       (status === 401 || status === 403) &&
       !originalReq._retry &&
-      !originalReq.url?.includes('/auth/refresh')
+      !originalReq.url?.includes('/auth/refresh') &&
+      !accessToken
     ) {
       originalReq._retry = true;
       try {

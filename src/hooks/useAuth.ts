@@ -9,8 +9,17 @@ export function useAuth() {
   const refresh = useRefreshToken()
 
   useEffect(() => {
-    // Only try to refresh if we haven't initialized yet
-    if (!auth.isInitialized) {
+    if (!auth.isHydrated) {
+      return;
+    }
+
+    // if an accessToken is found, just mark as initialized without refreshing
+    if (!auth.isInitialized && auth.accessToken) {
+      auth.setInitialized(true)
+      return;
+    }
+
+    if (!auth.isInitialized && !auth.accessToken) {
       const initAuth = async () => {
         try {
           auth.setLoading(true)
@@ -24,7 +33,7 @@ export function useAuth() {
       }
       initAuth()
     }
-  }, []) // Empty deps array as this should only run once on mount
+  }, [auth.isHydrated, auth.isInitialized, auth.accessToken, auth.setLoading, auth.clearAuth, auth.setInitialized, refresh])
 
   return { auth }
 } 
