@@ -22,19 +22,25 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
-export function ChatSidebar() {
+interface ChatSidebarProps {
+  fullWidthOnMobile?: boolean
+}
+
+export function ChatSidebar({ fullWidthOnMobile = false }: ChatSidebarProps) {
   const [userSearch, setUserSearch] = useState('')
   const [showNewChatSidebar, setShowNewChatSidebar] = useState(false)
   const [showProfileSidebar, setShowProfileSidebar] = useState(false)
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(!fullWidthOnMobile)
   const { logout } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
 
-  // Close mobile sidebar on route change
+  // Close mobile sidebar on route change (only if not fullWidthOnMobile)
   useEffect(() => {
-    setIsMobileOpen(false)
-  }, [pathname])
+    if (!fullWidthOnMobile) {
+      setIsMobileOpen(false)
+    }
+  }, [pathname, fullWidthOnMobile])
 
   const handleLogout = async () => {
     try {
@@ -68,24 +74,32 @@ export function ChatSidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setIsMobileOpen(true)}
-        className="fixed top-4 left-4 z-30 md:hidden hover:bg-gray-100 focus:ring-2 focus:ring-primary/20"
-      >
-        <Menu className="h-5 w-5 text-gray-700" />
-      </Button>
+      {/* Mobile Menu Button - only show if not fullWidthOnMobile */}
+      {!fullWidthOnMobile && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsMobileOpen(true)}
+          className="fixed top-4 left-4 z-30 md:hidden hover:bg-gray-100 focus:ring-2 focus:ring-primary/20"
+        >
+          <Menu className="h-5 w-5 text-gray-700" />
+        </Button>
+      )}
 
-      {/* Mobile Backdrop */}
-      <Backdrop show={isMobileOpen} onClose={() => setIsMobileOpen(false)} />
+      {/* Mobile Backdrop - only show if not fullWidthOnMobile */}
+      {!fullWidthOnMobile && (
+        <Backdrop show={isMobileOpen} onClose={() => setIsMobileOpen(false)} />
+      )}
 
       <div className={cn(
-        "fixed md:relative flex flex-col bg-gray-50 border-r",
+        "flex flex-col bg-gray-50 border-r",
         "h-full transition-all duration-300 ease-in-out z-50 w-[320px]",
         "shadow-[0_0_15px_rgba(0,0,0,0.05)]",
-        isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        fullWidthOnMobile 
+          ? "fixed md:relative w-full md:w-[320px] translate-x-0" 
+          : isMobileOpen 
+            ? "fixed translate-x-0" 
+            : "fixed md:relative -translate-x-full md:translate-x-0"
       )}>
         <div className="flex items-center h-16 sm:h-[70px] px-4 border-b bg-gray-50">
           <h1 className="text-lg font-semibold text-gray-800 tracking-tight">
@@ -131,16 +145,19 @@ export function ChatSidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMobileOpen(false)}
-            className="ml-1 hover:bg-gray-100 focus:ring-2 focus:ring-primary/20 md:hidden"
-            title="Close sidebar"
-            aria-label="Close sidebar"
-          >
-            <X className="h-5 w-5 text-gray-700" />
-          </Button>
+          {/* Close button - only show if not fullWidthOnMobile */}
+          {!fullWidthOnMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileOpen(false)}
+              className="ml-1 hover:bg-gray-100 focus:ring-2 focus:ring-primary/20 md:hidden"
+              title="Close sidebar"
+              aria-label="Close sidebar"
+            >
+              <X className="h-5 w-5 text-gray-700" />
+            </Button>
+          )}
         </div>
 
         <div className="relative px-4 py-3">

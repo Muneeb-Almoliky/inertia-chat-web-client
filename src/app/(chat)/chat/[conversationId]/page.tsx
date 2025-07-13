@@ -17,6 +17,7 @@
   import { GroupManagementSidebar } from "@/components/chat/GroupManagementSidebar";
   import {ChatHeader} from "@/components/chat/ChatHeader";
   import { useRouter } from "next/navigation";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
 
   interface ChatPageParams {
     conversationId: string;
@@ -211,6 +212,8 @@
 
   return (
     <>
+    <ChatSidebar />
+    <main className="flex-1 flex flex-col">
       {showGroupManagement && groupDetails && (
         <GroupManagementSidebar
           groupDetails={groupDetails}
@@ -245,6 +248,7 @@
           onUpdateMessage={handleUpdateMessage}
         />
       </div>
+    </main>
     </>
   );
   }
