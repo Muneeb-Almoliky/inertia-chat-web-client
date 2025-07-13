@@ -2,10 +2,8 @@
 
 import Link from 'next/link'
 import { Github, Mail } from 'lucide-react'
-import { usePathname } from 'next/navigation'
 
 export function Footer() {
-  const pathname = usePathname()
   const year = new Date().getFullYear()
 
   return (

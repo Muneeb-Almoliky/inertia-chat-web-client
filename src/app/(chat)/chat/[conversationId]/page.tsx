@@ -67,7 +67,7 @@
 
     // Find other user details for individual chats
     useEffect(() => {
-      let isMounted = true;
+      const isMounted = true;
       
       const fetchData = async () => {
         try {
