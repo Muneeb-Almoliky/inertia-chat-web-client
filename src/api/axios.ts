@@ -30,14 +30,17 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalReq = error.config!;
     const status = error.response?.status;
+    const errorMessage = error.response?.data?.error;
     const { accessToken } = useAuthStore.getState();
 
-    if (
+    const shouldRefresh = (
       (status === 401 || status === 403) &&
       !originalReq._retry &&
       !originalReq.url?.includes('/auth/refresh') &&
-      !accessToken
-    ) {
+      (errorMessage === "Invalid or expired token. Please log in again." || !accessToken)
+    );
+
+    if (shouldRefresh) {
       originalReq._retry = true;
       try {
         // call your refresh endpoint directly
