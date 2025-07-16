@@ -7,14 +7,21 @@ Modern web client for Inertia Chat, built with Next.js.
 ### Prerequisites
 - Node.js 20+
 
-### Installation
+### Getting started
+
+1. Clone repository
 ```bash
-# Clone repository
 git clone https://github.com/Muneeb-Almoliky/inertia-chat-web-client.git
+```
 
-# Install dependencies
+2. Install dependencies
+```bash
 npm install
+```
 
-# Start the development server
+3. Start the development server
+```bash
 npm run dev
 ```
+
+4. Open: http://localhost:3000
