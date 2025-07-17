@@ -20,12 +20,16 @@ export default function HomePage() {
   }, [auth.isInitialized, auth.isAuthenticated, router])
 
   // Show spinner while auth is initializing or redirecting
-  if (!auth.isInitialized || auth.isAuthenticated) {
+  if (!auth.isInitialized || !auth.isHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
+  }
+  
+  if (auth.isAuthenticated) {
+    return null
   }
 
   return (
