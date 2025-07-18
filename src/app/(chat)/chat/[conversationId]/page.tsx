@@ -67,7 +67,7 @@ function ConversationPage() {
     };
 
     fetchGroupDetails();
-  }, [conversationId, chatType]);
+  }, [conversationId, chatType, router, cid]);
 
   // Find other user details for individual chats
   useEffect(() => {
@@ -110,7 +110,7 @@ function ConversationPage() {
     if (chatType === ChatType.INDIVIDUAL) {
       fetchData();
     }
-  }, [conversationId, auth.userId, chatType]);
+  }, [conversationId, auth.userId, chatType, router]);
 
   // Mark messages as read when scrolled to bottom
   useEffect(() => {

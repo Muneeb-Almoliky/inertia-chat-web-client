@@ -134,6 +134,7 @@ export function useChat(chatId?: number) {
     chatId,
     auth.isAuthenticated,
     auth.username,
+    auth.userId,
     setMessages,
     addMessage,
     updateMessage,

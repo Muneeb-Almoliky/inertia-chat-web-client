@@ -21,6 +21,7 @@ import twemoji from 'twemoji'
 import { cn } from "@/lib/utils"
 import { useChatStore } from "@/lib/store/chat.store"
 import { isFirstLetterArabic } from "@/utils/text"
+import Image from "next/image"
 
 interface ChatInputProps {
   conversationId: string
@@ -73,7 +74,7 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
         reader.readAsDataURL(file);
       }
     });
-  }, [attachments]);
+  }, [attachments, imagePreviews]);
 
   useEffect(() => {
     if (editingMessage && inputRef.current) {
@@ -582,7 +583,7 @@ export function ChatInput({ conversationId, onMessageSent, isEditing = false, on
             >
               {file.type.startsWith('image/') && imagePreviews[file.name] ? (
                 <div className="flex items-center gap-2">
-                  <img 
+                  <Image 
                     src={imagePreviews[file.name]} 
                     alt={file.name}
                     className="h-8 w-8 object-cover rounded-lg"

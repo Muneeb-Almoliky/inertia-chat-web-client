@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useAuthStore } from '@/lib/store/auth.store'
 import { useRefreshToken } from './useRefreshToken'
 

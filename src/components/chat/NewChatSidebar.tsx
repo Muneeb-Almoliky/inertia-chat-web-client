@@ -26,7 +26,6 @@ export function NewChatSidebar({
   isOpen
 }: NewChatSidebarProps) {
   const [search, setSearch] = useState('')
-  const [isMobileOpen] = useState(true)
   const [groupMode, setGroupMode] = useState(false)
   const [groupName, setGroupName] = useState('')
   const [groupAvatar, setGroupAvatar] = useState<File | null>(null)
