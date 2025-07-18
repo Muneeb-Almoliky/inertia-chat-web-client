@@ -12,15 +12,18 @@ import { UserProfile } from '@/types/user'
 import { chatService } from '@/services/chatService'
 import { toast } from 'sonner'
 import { ChatType } from '@/types/chat'
+import { useMediaQuery } from 'react-responsive'
 
 interface NewChatSidebarProps {
   onBack: () => void
   onGroupCreated: (groupId: number) => void
+  isOpen: boolean
 }
 
 export function NewChatSidebar({ 
   onBack, 
-  onGroupCreated
+  onGroupCreated,
+  isOpen
 }: NewChatSidebarProps) {
   const [search, setSearch] = useState('')
   const [isMobileOpen] = useState(true)
@@ -29,6 +32,8 @@ export function NewChatSidebar({
   const [groupAvatar, setGroupAvatar] = useState<File | null>(null)
   const [selectedParticipants, setSelectedParticipants] = useState<UserProfile[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  const isMobile = useMediaQuery({ maxWidth: 768 })
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click()
@@ -102,12 +107,13 @@ export function NewChatSidebar({
 
   return (
     <>
-      <Backdrop show={isMobileOpen} onClose={onBack} />
+      <Backdrop show={isOpen && isMobile} onClose={onBack} />
       <div className={cn(
         "fixed md:relative flex flex-col bg-gray-50 border-r",
         "h-full transition-all duration-300 ease-in-out z-50 w-[320px]",
         "shadow-[0_0_15px_rgba(0,0,0,0.05)]",
-        isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        isMobile ? "w-full" : "w-[320px]",
+        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
         {/* Header */}
         <div className="flex items-center h-16 sm:h-[70px] px-4 border-b bg-gray-50">

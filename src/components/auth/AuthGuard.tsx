@@ -32,10 +32,10 @@ export function AuthGuard<P extends object>(
     }, [isAuthenticated, isLoading, isInitialized, isHydrated, router])
 
     // Show loading while hydrating
-    if (!isHydrated || isLoading) {
+    if (!isHydrated) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       )
     }

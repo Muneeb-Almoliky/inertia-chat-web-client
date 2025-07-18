@@ -25,12 +25,14 @@ import { Card } from '@/components/ui/card'
 import Avatar from './Avatar'
 import { cn } from '@/lib/utils'
 import { Backdrop } from '@/components/ui/backdrop'
+import { useMediaQuery } from 'react-responsive'
 
 interface ProfileSidebarProps {
   onBack: () => void
+  isOpen: boolean
 }
 
-export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
+export function ProfileSidebar({ onBack, isOpen }: ProfileSidebarProps) {
   const router = useRouter()
   const { logout } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
@@ -40,13 +42,14 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [isMobileOpen] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     name: '',
     username: '',
     password: ''
   })
+
+  const isMobile = useMediaQuery({ maxWidth: 768 })
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -129,12 +132,13 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
   if (loading || !profile) {
     return (
       <>
-        <Backdrop show={isMobileOpen} onClose={onBack} />
+        <Backdrop show={isOpen && isMobile} onClose={onBack} />
         <div className={cn(
           "fixed md:relative flex flex-col bg-gray-50 border-r",
           "h-full transition-all duration-300 ease-in-out z-50 w-[320px]",
           "shadow-[0_0_15px_rgba(0,0,0,0.05)]",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          isMobile ? "w-full" : "w-[320px]",
+          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}>
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -151,13 +155,14 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
   
   return (
     <>
-      <Backdrop show={isMobileOpen} onClose={onBack} />
-      <div className={cn(
-        "fixed md:relative flex flex-col bg-gray-50 border-r",
-        "h-full transition-all duration-300 ease-in-out z-50 w-[320px]",
-        "shadow-[0_0_15px_rgba(0,0,0,0.05)]",
-        isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-      )}>
+      <Backdrop show={isOpen && isMobile} onClose={onBack} />
+        <div className={cn(
+          "fixed md:relative flex flex-col bg-gray-50 border-r",
+          "h-full transition-all duration-300 ease-in-out z-50 w-[320px]",
+          "shadow-[0_0_15px_rgba(0,0,0,0.05)]",
+          isMobile ? "w-full" : "w-[320px]",
+          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}>
         {/* Header */}
         <div className="flex items-center h-16 sm:h-[70px] px-4 border-b bg-gray-50">
           <Button
@@ -349,3 +354,4 @@ export function ProfileSidebar({ onBack }: ProfileSidebarProps) {
     </>
   )
 }
+

@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import { Users, MoreVertical, LogOut, Settings } from "lucide-react";
+import { Users, MoreVertical, LogOut, Settings, ArrowLeft } from "lucide-react";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -39,6 +39,8 @@ interface ChatHeaderProps {
   showSettings: boolean;
   onOpenSettings: () => void;
   onLeaveGroup: () => void;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }
 
 export function ChatHeader({
@@ -47,6 +49,8 @@ export function ChatHeader({
   groupDetails,
   onOpenSettings,
   onLeaveGroup,
+  showBackButton = false,
+  onBack = () => {},
 }: ChatHeaderProps) {
   const ready =
     (chatType === ChatType.INDIVIDUAL && otherUser) ||
@@ -57,7 +61,19 @@ export function ChatHeader({
 
   return (
     <div className="border-b bg-gray-50 flex items-center justify-between h-16 sm:h-18 px-4 sm:px-6 md:px-8 lg:px-10">
-      <div className="flex items-center gap-3 min-w-0 pl-10 md:pl-0">
+      <div className="flex items-center gap-3 min-w-0">
+        {/* Back button for mobile */}
+        {showBackButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden mr-1 -ml-2"
+            onClick={onBack}
+            aria-label="Back to chat list"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-700" />
+          </Button>
+        )}
         <div className="relative flex-shrink-0">
           {ready ? (
             chatType === ChatType.INDIVIDUAL ? (

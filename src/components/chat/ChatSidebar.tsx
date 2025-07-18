@@ -57,16 +57,14 @@ export function ChatSidebar({ fullWidthOnMobile = false }: ChatSidebarProps) {
   }
 
   if (showProfileSidebar) {
-    return <ProfileSidebar onBack={() => setShowProfileSidebar(false)} />
+    return <ProfileSidebar onBack={() => setShowProfileSidebar(false)} isOpen={showProfileSidebar} />
   }
 
   if (showNewChatSidebar) {
     return (
       <NewChatSidebar
         onBack={() => setShowNewChatSidebar(false)}
-        // onStartChat={() => {
-        //   setShowNewChatSidebar(false)
-        // }}
+        isOpen={showNewChatSidebar}
         onGroupCreated={handleGroupCreated}
       />
     )
