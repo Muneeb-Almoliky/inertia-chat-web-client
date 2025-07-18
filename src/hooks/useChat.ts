@@ -4,27 +4,25 @@ import { useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from './useAuth'
 import { chatService } from '@/services/chatService'
 import { websocketService } from '@/services/websocketService'
-import { MessageType, ChatMessage, MessageStatusType, ChatType } from '@/types/chat'
+import { ChatMessage, MessageStatusType, ChatType } from '@/types/chat'
 import { useChatStore } from '@/lib/store/chat.store'
 import { MAX_FILE_SIZE_LABEL } from '@/constants/file'
 import { messageService } from '@/services/messageService'
 import { ApiErrorResponse } from '@/types/api'
+import { useChatWebsocket } from './useChatWebsocket'
 
 export function useChat(chatId?: number) {
   const { auth } = useAuth()
   const {
     setChats,
     setMessages,
-    addMessage,
-    updateMessage,
-    deleteMessage,
     setLoadingState,
     setActiveChat,
     chats,
     loadingStates,
     removeChat,
-    updateMessageStatus
   } = useChatStore()
+  useChatWebsocket(chats, chatId, auth)
 
   const emptyArr: ChatMessage[] = useMemo(() => [], [])
   const messages = useChatStore(state =>
@@ -87,61 +85,21 @@ export function useChat(chatId?: number) {
     }
   }, [chatType, fetchGroupDetails]);
 
-  // initial load + live WS events
+  // Initial load messages
   useEffect(() => {
-    if (!auth.isAuthenticated || !chatId) return
+    if (!auth.isAuthenticated || !chatId) return;
 
-    setLoadingState('messagesLoad', true)
-    chatService
-      .getChatHistory(chatId)
+    setLoadingState('messagesLoad', true);
+    chatService.getChatHistory(chatId)
       .then(resp => setMessages(chatId, resp.data))
       .catch(console.error)
-      .finally(() => setLoadingState('messagesLoad', false))
-
-    const onConnect = () => {
-      websocketService.joinChat(chatId, auth.username)
-      websocketService.subscribeToChat(
-        chatId,
-        // new message
-        msg => { 
-          if (msg.type === MessageType.CHAT) {
-            addMessage(chatId, msg);
-            // Mark as delivered if not our own message
-            if (msg.senderId !== auth.userId) {
-              messageService.markAsDelivered(msg.id!);
-            }
-          }
-        },
-        // updated message
-        update => {
-          if ('content' in update) {
-            // Message update
-            if (update.type === MessageType.UPDATE) {
-              updateMessage(chatId, update.id!, update.content!);
-            }
-          } else {
-            // Status update
-            updateMessageStatus(chatId, update);
-          }
-        },
-        // deleted message
-        id  => deleteMessage(chatId, id)
-      )
-    }
-
-    websocketService.onConnect(onConnect)
+      .finally(() => setLoadingState('messagesLoad', false));
   }, [
-    chatId,
     auth.isAuthenticated,
-    auth.username,
-    auth.userId,
-    setMessages,
-    addMessage,
-    updateMessage,
-    deleteMessage,
+    chatId,
     setLoadingState,
-    updateMessageStatus
-  ])
+    setMessages,
+  ]);
 
   // Add useEffect to mark messages as read
   useEffect(() => {
